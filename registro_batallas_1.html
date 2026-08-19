@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Adeptus Analytica - Battle Log</title>
+<style>
+  :root {
+    --bg: #101013;
+    --panel: #17171b;
+    --panel-2: #1e1e23;
+    --border: #313138;
+    --gold: #b08d45;
+    --gold-dim: #7d6531;
+    --red: #8c2a2a;
+    --text: #e6e1d3;
+    --text-dim: #9a978c;
+    --win: #4f7a3f;
+    --loss: #8c2a2a;
+    --draw: #7d6531;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Georgia', 'Times New Roman', serif;
+    margin: 0;
+    padding: 24px;
+  }
+  h1 {
+    font-family: 'Trajan Pro', 'Cinzel', Georgia, serif;
+    letter-spacing: 2px;
+    color: var(--gold);
+    font-size: 22px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+  h1 span { color: var(--text-dim); font-size: 13px; letter-spacing: 1px; display: block; margin-top: 4px; text-transform: none; }
+  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+  @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px;
+  }
+  .panel h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--gold);
+    margin: 0 0 14px 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    margin-top: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  select, input, button {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 3px;
+    font-family: 'Georgia', serif;
+    font-size: 14px;
+  }
+  select:focus, input:focus { outline: 1px solid var(--gold-dim); border-color: var(--gold-dim); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  button.submit {
+    margin-top: 18px;
+    background: var(--red);
+    border: 1px solid #a83c3c;
+    color: #f0e6d8;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 10px;
+  }
+  button.submit:hover { background: #a83232; }
+  .error { color: #e08a8a; font-size: 12px; margin-top: 6px; display: none; }
+  .hint { color: var(--text-dim); font-size: 11px; margin-top: 4px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .stat-card {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 12px;
+  }
+  .stat-card .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card .value { font-size: 20px; color: var(--gold); margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+    padding: 6px 8px;
+  }
+  td { padding: 7px 8px; border-bottom: 1px solid #232328; }
+  .bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .bar-bg { flex: 1; height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--gold-dim); }
+  .badge { padding: 2px 8px; border-radius: 3px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge.win { background: rgba(79,122,63,0.25); color: #9fcf8a; }
+  .badge.loss { background: rgba(140,42,42,0.25); color: #e08a8a; }
+  .badge.draw { background: rgba(125,101,49,0.25); color: #d9c58a; }
+  .checklist { max-height: 180px; overflow-y: auto; border: 1px solid var(--border); border-radius: 3px; background: var(--panel-2); padding: 6px 8px; }
+  .checklist label { display: flex; align-items: center; gap: 8px; font-size: 13px; text-transform: none; letter-spacing: 0; color: var(--text); margin: 0; padding: 5px 0; border-bottom: 1px solid #232328; }
+  .checklist label:last-child { border-bottom: none; }
+  .checklist input[type=checkbox] { width: auto; margin: 0; }
+  .checklist label.disabled { color: var(--text-dim); }
+  .checklist .dp-tag { margin-left: auto; font-size: 11px; color: var(--gold); }
+  .empty { color: var(--text-dim); font-size: 13px; padding: 20px 0; text-align: center; }
+  .del-btn {
+    background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px;
+    width: auto; padding: 0 4px;
+  }
+  .del-btn:hover { color: #e08a8a; }
+  .list-panel { max-height: 260px; overflow-y: auto; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<h1>Campaign Log<span>Adeptus Analytica — log your games and track your win rate</span></h1>
+
+<div class="layout">
+
+  <div class="panel">
+    <h2>New game</h2>
+
+    <label for="puntos">Army points</label>
+    <input id="puntos" type="number" min="0" step="1" placeholder="2000">
+    <div class="hint" id="dp-budget-hint">Detachment Points budget: 2 DP (games at or below 1000 pts)</div>
+
+    <div class="row2">
+      <div>
+        <label for="ejercito">Your army</label>
+        <select id="ejercito">
+          <option>Adeptus Astartes</option>
+          <option>Astra Militarum</option>
+          <option>Orks</option>
+          <option>Necrons</option>
+          <option>Tyranids</option>
+          <option>Chaos Marines</option>
+          <option>Aeldari</option>
+          <option>T'au Empire</option>
+          <option>Thousand Sons</option>
+          <option>Drukhari</option>
+          <option>Chaos Knights</option>
+          <option value="__custom">Other (type in)...</option>
+        </select>
+        <input id="ejercito-custom" placeholder="Army name" style="display:none; margin-top:8px;">
+      </div>
+      <div>
+        <label for="disposicion">Force disposition</label>
+        <select id="disposicion"></select>
+      </div>
+    </div>
+    <div class="hint" id="disposicion-hint">Choose detachments to see available dispositions.</div>
+
+    <label for="detachment">Detachments (multiple allowed within budget)</label>
+    <div id="detachment-list" class="checklist"></div>
+    <div class="hint" id="dp-used-hint">0 / 2 DP used</div>
+
+    <div class="row2">
+      <div>
+        <label for="rival">Opponent's army</label>
+        <select id="rival">
+          <option>Adeptus Astartes</option>
+          <option>Astra Militarum</option>
+          <option>Orks</option>
+          <option>Necrons</option>
+          <option>Tyranids</option>
+          <option>Chaos Marines</option>
+          <option>Aeldari</option>
+          <option>T'au Empire</option>
+          <option>Thousand Sons</option>
+          <option>Drukhari</option>
+          <option>Chaos Knights</option>
+          <option value="__custom">Other (type in)...</option>
+        </select>
+        <input id="rival-custom" placeholder="Opponent army name" style="display:none; margin-top:8px;">
+      </div>
+      <div>
+        <label for="rival-disposicion">Opponent's force disposition</label>
+        <select id="rival-disposicion"></select>
+      </div>
+    </div>
+
+    <label for="rival-detachment">Opponent's detachments</label>
+    <div id="rival-detachment-list" class="checklist"></div>
+    <div class="hint" id="rival-dp-used-hint">0 / 2 DP used</div>
+
+    <label for="mision">Mission</label>
+    <input id="mision" list="mision-list" placeholder="Select or type a mission">
+    <datalist id="mision-list"></datalist>
+    <div class="hint">Missions update based on your force disposition (11th ed.)</div>
+
+    <div class="row2">
+      <div>
+        <label for="pv-propios">Victory points (you)</label>
+        <input id="pv-propios" type="number" min="0" step="1" placeholder="85">
+      </div>
+      <div>
+        <label for="pv-rival">Victory points (opponent)</label>
+        <input id="pv-rival" type="number" min="0" step="1" placeholder="60">
+      </div>
+    </div>
+
+    <div class="error" id="form-error"></div>
+    <button class="submit" id="btn-guardar">Log game</button>
+  </div>
+
+  <div class="panel">
+    <h2>Overall win rate</h2>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="label">Games</div><div class="value" id="s-total">0</div></div>
+      <div class="stat-card"><div class="label">Win rate</div><div class="value" id="s-winrate">0%</div></div>
+      <div class="stat-card"><div class="label">W / L / D</div><div class="value" id="s-vde" style="font-size:16px;">0/0/0</div></div>
+    </div>
+
+    <h2>Win rate by army</h2>
+    <table id="tabla-resumen">
+      <thead>
+        <tr><th>Army</th><th>Games</th><th>Win rate</th></tr>
+      </thead>
+      <tbody id="tbody-resumen"></tbody>
+    </table>
+    <div class="empty" id="empty-resumen" style="display:none;">No games logged yet.</div>
+
+    <h2 style="margin-top:18px;">Game history</h2>
+    <div class="list-panel">
+      <table>
+        <thead>
+          <tr><th>Army</th><th>Detachment</th><th>Disposition</th><th>Opponent</th><th>VP</th><th>Result</th><th></th></tr>
+        </thead>
+        <tbody id="tbody-historial"></tbody>
+      </table>
+      <div class="empty" id="empty-historial" style="display:none;">Log your first game on the left.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'wh40k_batallas_usuario';
+let batallas = [];
+
+const $ = (id) => document.getElementById(id);
+
+const DETACHMENTS_BY_ARMY = {
+  'Adeptus Astartes': [['Fulguris Task Force',1,'mounted','Disruption'],['Librarius Conclave',1,'psyker','Reconnaissance'],['Subversion Assets',1,'infiltrator','Reconnaissance'],['1st Company Task Force',2,null,'Priority Assets'],['Anvil Siege Force',2,null,'Take and Hold'],['Armoured Speartip',3,'armour','Take and Hold'],['Bastion Task Force',2,null,'Take and Hold'],['Blade of Ultramar',3,null,'Priority Assets'],['Ceramite Sentinels',3,null,'Take and Hold'],["Emperor's Shield",2,null,'Priority Assets'],['Firestorm Assault Force',2,null,'Purge the Foe'],["Forgefather's Seekers",2,null,'Purge the Foe'],['Gladius Task Force',3,null,'Priority Assets'],['Hammer of Avernii',2,null,'Priority Assets'],['Headhunter Task Force',2,'armour','Priority Assets'],['Ironstorm Spearhead',2,'armour','Purge the Foe'],['Orbital Assault Force',2,null,'Take and Hold'],['Reclamation Force',2,null,'Take and Hold'],['Shadowmark Talon',2,'infiltrator','Disruption'],['Spearpoint Task Force',2,'mounted','Disruption'],['Stormlance Task Force',3,'mounted','Disruption'],['Vanguard Spearhead',2,'infiltrator','Reconnaissance']],
+  'Astra Militarum': [['Abhuman Auxiliaries',1,null,'Take and Hold'],['Bridgehead Strike',1,null,'Priority Assets'],['Designation Force',1,'recon','Reconnaissance'],['Armoured Infantry',2,null,'Take and Hold'],['Combined Arms',3,null,'Take and Hold'],['Grizzled Company',2,null,'Priority Assets'],['Hammer of the Emperor',2,'armour','Purge the Foe'],['Mechanised Assault',2,null,'Purge the Foe'],['Recon Element',3,'recon','Reconnaissance'],['Siege Regiment',2,null,'Disruption'],['Steel Hammer',2,'armour','Purge the Foe']],
+  'Orks': [["More Dakka!",1,null,'Purge the Foe'],["Rollin' Deff",1,null,'Priority Assets'],['Taktikal Brigade',1,null,'Disruption'],['Blitz Brigade',2,null,'Reconnaissance'],['Bully Boyz',2,null,'Purge the Foe'],['Da Big Hunt',2,null,'Purge the Foe'],['Dread Mob',2,null,'Purge the Foe'],['Freebooter Krew',2,null,'Take and Hold'],['Green Tide',2,null,'Take and Hold'],['Kult of Speed',2,'speed','Disruption'],['Speedwaaagh!',2,'speed','Reconnaissance'],['War Horde',3,null,'Take and Hold']],
+  'Necrons': [['Hand of the Dynasty',1,null,'Take and Hold'],['Skyshroud Spearhead',1,'mounted','Reconnaissance'],["The Phaeron's Armoury",1,null,'Priority Assets'],['Annihilation Legion',2,null,'Purge the Foe'],['Awakened Dynasty',3,null,'Take and Hold'],['Canoptek Court',3,null,'Take and Hold'],['Cryptek Conclave',2,'cryptek','Priority Assets'],['Cursed Legion',2,null,'Purge the Foe'],['Hypercrypt Legion',2,null,'Reconnaissance'],['Obeisance Phalanx',2,null,'Disruption'],['Pantheon of Woe',2,null,'Purge the Foe'],['Starshatter Arsenal',3,'mounted','Priority Assets']],
+  'Tyranids': [['Ambush Predators',1,null,'Disruption'],['Talons of the Norn Queen',1,null,'Take and Hold'],['Warrior Bioform Onslaught',1,null,'Take and Hold'],['Assimilation Swarm',2,null,'Priority Assets'],['Crusher Stampede',2,null,'Purge the Foe'],['Invasion Fleet',3,null,'Take and Hold'],['Subterranean Assault',2,null,'Disruption'],['Synaptic Nexus',2,'synapse','Disruption'],['Unending Swarm',2,null,'Take and Hold'],['Vanguard Onslaught',2,null,'Reconnaissance']],
+  'Chaos Marines': [['Cabal of Chaos',1,'psyker','Disruption'],['Devotees of Destruction',1,null,'Priority Assets'],['Murdertalon Raiders',1,null,'Purge the Foe'],['Chaos Cult',2,null,'Priority Assets'],['Creations of Bile',3,null,'Purge the Foe'],['Cult of the Arkifane',2,null,'Priority Assets'],['Deceptors',2,null,'Disruption'],['Dread Talons',2,null,'Disruption'],['Fellhammer Siege-host',2,null,'Take and Hold'],["Huron's Marauders",3,null,'Disruption'],['Nightmare Hunt',2,null,'Disruption'],['Pactbound Zealots',3,null,'Priority Assets'],['Renegade Raiders',3,null,'Reconnaissance'],['Renegade Warband',2,null,'Priority Assets'],['Soulforged Warpack',2,null,'Purge the Foe'],['Veterans of the Long War',2,null,'Take and Hold'],['Warpstrike Champions',2,null,'Disruption']],
+  'Aeldari': [['Armoured Warhost',1,null,'Reconnaissance'],['Fateful Performance',1,'harlequin','Disruption'],['Path of the Outcast',1,null,'Reconnaissance'],['Twilight Flickers',1,'harlequin','Take and Hold'],['Aspect Host',3,null,'Disruption'],['Corsair Coterie',2,null,'Priority Assets'],['Devoted of Ynnead',2,null,'Priority Assets'],['Eldritch Raiders',2,null,'Disruption'],['Ghosts of the Webway',2,'harlequin','Disruption'],['Guardian Battlehost',2,null,'Take and Hold'],['Seer Council',2,'psyker','Priority Assets'],["Serpent's Brood",2,'harlequin','Purge the Foe'],['Spirit Conclave',2,null,'Take and Hold'],['Warhost',3,null,'Purge the Foe'],['Windrider Host',2,'mounted','Disruption']],
+  "T'au Empire": [['Advanced Acquisition Cadre',1,null,'Reconnaissance'],['Auxillary Cadre',1,null,'Disruption'],['Experimental Prototype Cadre',1,null,'Priority Assets'],['Kauyon',2,'stance','Priority Assets'],['Kroot Hunting Pack',2,null,'Take and Hold'],["Mont'ka",3,'stance','Purge the Foe'],['Retaliation Cadre',2,null,'Purge the Foe']],
+  'Thousand Sons': [['Ritual of Regeneration',1,'psyker','Purge the Foe'],['Sekhetar Cohort',1,null,'Priority Assets'],['Servants of Change',1,null,'Reconnaissance'],['Changehost of Deceit',2,null,'Reconnaissance'],['Grand Coven',3,null,'Priority Assets'],['Hexwarp Thrallband',2,null,'Take and Hold'],['Rubricae Phalanx',3,null,'Take and Hold'],['Warpforged Cabal',2,null,'Disruption'],['Warpmeld Pact',2,null,'Purge the Foe']],
+  'Drukhari': [['Exhibition of Slaughter',1,null,'Disruption'],['Kabalite Agonysts',1,null,'Purge the Foe'],['Tools of Torment',1,null,'Take and Hold'],['Covenite Coterie',2,null,'Purge the Foe'],['Kabalite Cartel',2,null,'Disruption'],['Realspace Raiders',2,null,'Priority Assets'],["Reaper's Wager",3,null,'Purge the Foe'],['Skysplinter Assault',2,null,'Reconnaissance'],['Spectacle of Spite',2,null,'Purge the Foe']],
+  'Chaos Knights': [['Bastions of Tyranny',1,null,'Disruption'],['Hunting Warpack',1,null,'Reconnaissance'],['Iconoclast Fiefdom',1,null,'Take and Hold'],['Helhunt Lance',2,null,'Disruption'],['Houndpack Lance',2,null,'Reconnaissance'],['Infernal Lance',3,null,'Purge the Foe'],['Lords of Dread',2,null,'Priority Assets'],['Traitoris Lance',2,null,'Purge the Foe']],
+};
+
+function calcularBudgetDP() {
+  const puntos = Number($('puntos').value) || 0;
+  return puntos > 1000 ? 3 : 2;
+}
+
+function totalDPSeleccionado(contenedor) {
+  let total = 0;
+  contenedor.querySelectorAll('input[type=checkbox]:checked').forEach(cb => {
+    total += Number(cb.dataset.dp);
+  });
+  return total;
+}
+
+function tagsSeleccionados(contenedor) {
+  const tags = new Set();
+  contenedor.querySelectorAll('input[type=checkbox]:checked').forEach(cb => {
+    if (cb.dataset.tag && cb.dataset.tag !== 'null') tags.add(cb.dataset.tag);
+  });
+  return tags;
+}
+
+function poblarDetachments(selectEjercito, contenedorId, hintId) {
+  const ejercito = selectEjercito.value;
+  const opciones = DETACHMENTS_BY_ARMY[ejercito] || [];
+  const contenedor = $(contenedorId);
+  contenedor.innerHTML = '';
+
+  if (opciones.length === 0) {
+    contenedor.innerHTML = '<label class="disabled">No detachment data for this army - track it manually.</label>';
+    $(hintId).textContent = '';
+    return;
+  }
+
+  opciones.forEach(([nombre, dp, tag, disposicion]) => {
+    const id = contenedorId + '-' + nombre.replace(/[^a-z0-9]/gi, '');
+    const wrap = document.createElement('label');
+    wrap.innerHTML = `<input type="checkbox" id="${id}" data-dp="${dp}" data-tag="${tag}" data-name="${nombre}" data-disposition="${disposicion}"> ${nombre}<span class="dp-tag">${dp} DP · ${disposicion}</span>`;
+    contenedor.appendChild(wrap);
+    wrap.querySelector('input').addEventListener('change', () => {
+      actualizarChecklist(selectEjercito, contenedorId, hintId);
+      actualizarDisposicionDisponible(contenedorId);
+    });
+  });
+
+  actualizarChecklist(selectEjercito, contenedorId, hintId);
+  actualizarDisposicionDisponible(contenedorId);
+}
+
+function actualizarDisposicionDisponible(contenedorId) {
+  const contenedor = $(contenedorId);
+  const marcados = [...contenedor.querySelectorAll('input:checked')];
+  const disposicionesDisponibles = [...new Set(marcados.map(cb => cb.dataset.disposition))];
+
+  const selectId = contenedorId === 'detachment-list' ? 'disposicion' : 'rival-disposicion';
+  const select = $(selectId);
+  const valorPrevio = select.value;
+  select.innerHTML = '';
+
+  const todasLasDisposiciones = ['Take and Hold', 'Purge the Foe', 'Reconnaissance', 'Priority Assets', 'Disruption'];
+  const opciones = disposicionesDisponibles.length > 0 ? disposicionesDisponibles : todasLasDisposiciones;
+
+  opciones.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d;
+    opt.textContent = d;
+    select.appendChild(opt);
+  });
+
+  if (opciones.includes(valorPrevio)) select.value = valorPrevio;
+
+  if (selectId === 'disposicion') {
+    actualizarMisiones();
+    $('disposicion-hint').textContent = disposicionesDisponibles.length > 0
+      ? `Available from your selected detachments: ${disposicionesDisponibles.join(', ')}`
+      : 'Choose detachments to see available dispositions.';
+  }
+}
+
+function actualizarChecklist(selectEjercito, contenedorId, hintId) {
+  const contenedor = $(contenedorId);
+  const budget = calcularBudgetDP();
+  const usado = totalDPSeleccionado(contenedor);
+  const tagsActivos = tagsSeleccionados(contenedor);
+
+  $(hintId).textContent = `${usado} / ${budget} DP used`;
+  $(hintId).style.color = usado > budget ? '#e08a8a' : '';
+
+  contenedor.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    const label = cb.closest('label');
+    const dp = Number(cb.dataset.dp);
+    const tag = cb.dataset.tag;
+    if (cb.checked) {
+      label.classList.remove('disabled');
+      return;
+    }
+    const excederiaPresupuesto = usado + dp > budget;
+    const chocaTag = tag && tag !== 'null' && tagsActivos.has(tag);
+    cb.disabled = excederiaPresupuesto || chocaTag;
+    label.classList.toggle('disabled', cb.disabled);
+  });
+}
+
+const MISSIONS_BY_DISPOSITION = {
+  'Take and Hold': ['Inescapable Dominion', 'Vital Ground', 'Scattered Positions', 'Terraform', 'Unbroken Wall'],
+  'Purge the Foe': ["Destroyer's Wrath", 'Storm Assault', 'Purge the Foe', 'Advanced Positions', 'Bring It Down'],
+  'Reconnaissance': ['Search and Scour', 'Deploy Teleport Homers', 'Recon Sweep', 'Outflank', 'Deep Strike'],
+  'Priority Assets': ['Vital Link', 'Secure Asset', 'Extract Relic', 'Sabotage', 'Overwhelming Force'],
+  'Disruption': ['Locate and Deny', 'Outmanoeuvre', 'Behind Enemy Lines', 'Sever the Head', 'Sabotage'],
+};
+
+function actualizarMisiones() {
+  const disposicion = $('disposicion').value;
+  const lista = MISSIONS_BY_DISPOSITION[disposicion] || [];
+  const datalist = $('mision-list');
+  datalist.innerHTML = '';
+  lista.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m;
+    datalist.appendChild(opt);
+  });
+}
+
+$('disposicion').addEventListener('change', actualizarMisiones);
+
+$('ejercito').addEventListener('change', () => {
+  $('ejercito-custom').style.display = $('ejercito').value === '__custom' ? 'block' : 'none';
+  poblarDetachments($('ejercito'), 'detachment-list', 'dp-used-hint');
+});
+$('rival').addEventListener('change', () => {
+  $('rival-custom').style.display = $('rival').value === '__custom' ? 'block' : 'none';
+  poblarDetachments($('rival'), 'rival-detachment-list', 'rival-dp-used-hint');
+});
+$('puntos').addEventListener('input', () => {
+  const budget = calcularBudgetDP();
+  $('dp-budget-hint').textContent = `Detachment Points budget: ${budget} DP (${budget === 3 ? 'games above 1000 pts' : 'games at or below 1000 pts'})`;
+  actualizarChecklist($('ejercito'), 'detachment-list', 'dp-used-hint');
+  actualizarChecklist($('rival'), 'rival-detachment-list', 'rival-dp-used-hint');
+});
+
+function mostrarError(msg) {
+  const el = $('form-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function limpiarError() {
+  $('form-error').style.display = 'none';
+}
+
+async function cargarBatallas() {
+  try {
+    const result = await window.storage.get(STORAGE_KEY, false);
+    batallas = result ? JSON.parse(result.value) : [];
+  } catch (e) {
+    batallas = [];
+  }
+  render();
+}
+
+async function guardarBatallas() {
+  try {
+    await window.storage.set(STORAGE_KEY, JSON.stringify(batallas), false);
+  } catch (e) {
+    mostrarError('Could not save. Please try again.');
+  }
+}
+
+$('btn-guardar').addEventListener('click', async () => {
+  limpiarError();
+
+  let ejercito = $('ejercito').value;
+  if (ejercito === '__custom') {
+    ejercito = $('ejercito-custom').value.trim();
+  }
+  let rival = $('rival').value;
+  if (rival === '__custom') {
+    rival = $('rival-custom').value.trim();
+  }
+  const puntos = $('puntos').value;
+  const disposicion = $('disposicion').value;
+  const rivalDisposicion = $('rival-disposicion').value;
+  const mision = $('mision').value.trim();
+  const pvPropios = $('pv-propios').value;
+  const pvRival = $('pv-rival').value;
+
+  if (!ejercito) { mostrarError('Enter your army name.'); return; }
+  if (!rival) { mostrarError("Enter your opponent's army."); return; }
+  if (pvPropios === '' || pvRival === '') { mostrarError('Enter victory points for both sides.'); return; }
+  if (Number(pvPropios) < 0 || Number(pvRival) < 0) { mostrarError('Victory points cannot be negative.'); return; }
+
+  const budget = calcularBudgetDP();
+  const dpUsado = totalDPSeleccionado($('detachment-list'));
+  if (dpUsado > budget) { mostrarError(`Selected detachments cost ${dpUsado} DP, over your ${budget} DP budget.`); return; }
+
+  const detachmentsElegidos = [...$('detachment-list').querySelectorAll('input:checked')].map(cb => cb.dataset.name);
+  const rivalDetachmentsElegidos = [...$('rival-detachment-list').querySelectorAll('input:checked')].map(cb => cb.dataset.name);
+  const detachment = detachmentsElegidos.join(', ') || '-';
+  const rivalDetachment = rivalDetachmentsElegidos.join(', ') || '-';
+
+  const pvP = Number(pvPropios);
+  const pvR = Number(pvRival);
+  let resultado = 'Draw';
+  if (pvP > pvR) resultado = 'Win';
+  else if (pvP < pvR) resultado = 'Loss';
+
+  batallas.push({
+    id: Date.now(),
+    ejercito, rival,
+    detachment, rivalDetachment,
+    dpUsado,
+    puntos: puntos ? Number(puntos) : null,
+    disposicion, rivalDisposicion,
+    mision: mision || '-',
+    pvPropios: pvP, pvRival: pvR,
+    resultado,
+  });
+
+  await guardarBatallas();
+
+  $('rival').value = 'Adeptus Astartes';
+  $('rival-custom').style.display = 'none';
+  $('rival-custom').value = '';
+  poblarDetachments($('rival'), 'rival-detachment-list', 'rival-dp-used-hint');
+  $('puntos').value = '';
+  $('mision').value = '';
+  $('pv-propios').value = '';
+  $('pv-rival').value = '';
+
+  render();
+});
+
+async function eliminarBatalla(id) {
+  batallas = batallas.filter(b => b.id !== id);
+  await guardarBatallas();
+  render();
+}
+
+function render() {
+  const total = batallas.length;
+  const victorias = batallas.filter(b => b.resultado === 'Win').length;
+  const derrotas = batallas.filter(b => b.resultado === 'Loss').length;
+  const empates = batallas.filter(b => b.resultado === 'Draw').length;
+  const winrate = total > 0 ? Math.round((victorias / total) * 1000) / 10 : 0;
+
+  $('s-total').textContent = total;
+  $('s-winrate').textContent = winrate + '%';
+  $('s-vde').textContent = `${victorias}/${derrotas}/${empates}`;
+
+  const porEjercito = {};
+  batallas.forEach(b => {
+    if (!porEjercito[b.ejercito]) porEjercito[b.ejercito] = { jugadas: 0, victorias: 0 };
+    porEjercito[b.ejercito].jugadas += 1;
+    if (b.resultado === 'Win') porEjercito[b.ejercito].victorias += 1;
+  });
+
+  const tbodyResumen = $('tbody-resumen');
+  tbodyResumen.innerHTML = '';
+  const ejercitos = Object.keys(porEjercito).sort(
+    (a, b) => (porEjercito[b].victorias / porEjercito[b].jugadas) - (porEjercito[a].victorias / porEjercito[a].jugadas)
+  );
+
+  $('empty-resumen').style.display = ejercitos.length === 0 ? 'block' : 'none';
+  $('tabla-resumen').style.display = ejercitos.length === 0 ? 'none' : 'table';
+
+  ejercitos.forEach(ej => {
+    const d = porEjercito[ej];
+    const wr = Math.round((d.victorias / d.jugadas) * 1000) / 10;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${ej}</td>
+      <td>${d.jugadas}</td>
+      <td>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill" style="width:${wr}%"></div></div>
+          <span style="min-width:38px;">${wr}%</span>
+        </div>
+      </td>`;
+    tbodyResumen.appendChild(tr);
+  });
+
+  const tbodyHist = $('tbody-historial');
+  tbodyHist.innerHTML = '';
+  $('empty-historial').style.display = total === 0 ? 'block' : 'none';
+
+  [...batallas].reverse().forEach(b => {
+    const cls = b.resultado === 'Win' ? 'win' : (b.resultado === 'Loss' ? 'loss' : 'draw');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${b.ejercito}</td>
+      <td>${b.detachment || '-'}${b.dpUsado ? ` (${b.dpUsado} DP)` : ''}</td>
+      <td>${b.disposicion || '-'}</td>
+      <td>${b.rival}</td>
+      <td>${b.pvPropios} - ${b.pvRival}</td>
+      <td><span class="badge ${cls}">${b.resultado}</span></td>
+      <td><button class="del-btn" data-id="${b.id}" aria-label="Delete game">&times;</button></td>`;
+    tbodyHist.appendChild(tr);
+  });
+
+  document.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', () => eliminarBatalla(Number(btn.dataset.id)));
+  });
+}
+
+actualizarMisiones();
+poblarDetachments($('ejercito'), 'detachment-list', 'dp-used-hint');
+poblarDetachments($('rival'), 'rival-detachment-list', 'rival-dp-used-hint');
+$('dp-budget-hint').textContent = `Detachment Points budget: ${calcularBudgetDP()} DP (games at or below 1000 pts)`;
+cargarBatallas();
+</script>
+
+</body>
+</html>
