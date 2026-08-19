@@ -135,10 +135,8 @@
 </head>
 <body>
 
- <!-- 1. Librería de Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- 2. Código de guardado forzado -->
 <script>
   const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
@@ -149,17 +147,18 @@
   async function cargarPartidas() {
     const { data: partidas, error } = await supabaseClient
       .from('Partidas')
-      .select('*');
+      .select('*')
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error al cargar datos:', error.message);
+      console.error('Error Supabase al cargar:', error.message);
       return;
     }
 
     pintarTabla(partidas);
   }
 
-  // B) Renderizar filas
+  // B) Renderizar filas en la tabla GAME HISTORY
   function pintarTabla(partidas) {
     const tabla = document.querySelector('table');
     if (!tabla) return;
@@ -190,7 +189,7 @@
           <tr>
             <td>${p.army || '-'}</td>
             <td>${p.detachment || '-'}</td>
-            <td>${p.disposition || '-'}</td>
+            <td>${p.disposicion || '-'}</td>
             <td>${p.opponent || '-'}</td>
             <td>${p.vp_you ?? 0} - ${p.vp_opponent ?? 0}</td>
             <td><span class="badge ${badgeClass}">${p.result || 'DRAW'}</span></td>
@@ -203,23 +202,20 @@
     tabla.innerHTML = html;
   }
 
-  // C) Guardar directo a Supabase ignorando los errores nativos del HTML
+  // C) Guardar partida mapeando tus columnas exactas
   async function guardarPartida(event) {
-    // Anulamos la validación por defecto del navegador/plantilla
     if (event) {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
     }
 
-    // Ocultar cualquier mensaje de error visible previo
-    document.querySelectorAll('.error').forEach(el => el.style.display = 'none');
-
     const selects = document.querySelectorAll('select');
     const miEjercito = selects[0] ? selects[0].value : 'Adeptus Astartes';
     const oponenteEjercito = selects[1] ? selects[1].value : 'Desconocido';
 
     const inputsNum = document.querySelectorAll('input[type="number"]');
+    const pts = inputsNum[0] ? parseInt(inputsNum[0].value) || 2000 : 2000;
     const vpTu = inputsNum.length >= 2 ? (parseInt(inputsNum[inputsNum.length - 2].value) || 0) : 0;
     const vpOponente = inputsNum.length >= 1 ? (parseInt(inputsNum[inputsNum.length - 1].value) || 0) : 0;
 
@@ -227,30 +223,39 @@
     if (vpTu > vpOponente) resultado = 'WIN';
     else if (vpTu < vpOponente) resultado = 'LOSS';
 
+    // Objeto ajustado exacto a la estructura de tu base de datos
     const nuevaPartida = {
+      id: crypto.randomUUID(), // Genera un ID único para evitar conflictos
       army: miEjercito,
       opponent: oponenteEjercito,
+      detachment: 'Fulguris Task Force',
+      rivalDetachment: 'None',
+      dpUsado: 2,
+      puntos: pts,
+      disposicion: 'Take and Hold',
+      rivalDisposicion: 'Take and Hold',
+      mision: 'Standard',
       vp_you: vpTu,
       vp_opponent: vpOponente,
       result: resultado
     };
 
-    console.log('Enviando datos a Supabase:', nuevaPartida);
+    console.log('Enviando a Supabase:', nuevaPartida);
 
     const { data, error } = await supabaseClient
       .from('Partidas')
       .insert([nuevaPartida]);
 
     if (error) {
-      alert('Error en la base de datos Supabase: ' + error.message);
+      alert('Error en Supabase: ' + error.message);
       console.error(error);
     } else {
-      alert('¡Partida guardada con éxito en Supabase!');
+      alert('¡Partida guardada con éxito!');
       cargarPartidas();
     }
   }
 
-  // D) Interceptar el clic en la fase inicial de captura (override)
+  // D) Interceptador
   window.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (e) => {
       if (e.target && e.target.textContent.trim().includes('LOG GAME')) {
