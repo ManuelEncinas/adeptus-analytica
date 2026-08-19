@@ -16,6 +16,20 @@
 
   // A) Cargar datos de la tabla 'Partidas'
   async function cargarPartidas() {
+  const { data: partidas, error } = await supabaseClient
+    .from('Partidas')
+    .select('*'); // Se elimina .order('created_at', ...)
+
+  if (error) {
+    console.error('Error al cargar datos:', error.message);
+    return;
+  }
+
+  console.log('Partidas cargadas:', partidas);
+}
+
+  // A) Cargar datos de la tabla 'Partidas'
+  async function cargarPartidas() {
     const { data: partidas, error } = await supabaseClient
       .from('Partidas')
       .select('*')
