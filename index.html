@@ -3,6 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <title>Adeptus Analytica - Battle Log</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+   // Inicializar Supabase
+const SUPABASE_URL = 'TU_SUPABASE_URL';
+const SUPABASE_KEY = 'TU_SUPABASE_ANON_KEY';
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// 1. Cargar las partidas al abrir la página
+async function cargarPartidas() {
+  const { data: partidas, error } = await supabase
+    .from('partidas')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (!error) {
+    renderizarTabla(partidas); // Función que dibuja tus filas en el GAME HISTORY
+  }
+}
+
+// 2. Guardar una partida al dar clic en LOG GAME
+async function guardarPartida(datosPartida) {
+  const { error } = await supabase
+    .from('partidas')
+    .insert([datosPartida]);
+
+  if (error) console.error('Error al guardar:', error);
+}
+
+// 3. ACTUALIZACIÓN EN TIEMPO REAL (Realtime)
+// Esto detecta cuando agregas un registro desde tu teléfono y actualiza la PC al instante
+supabase
+  .channel('partidas-db')
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'partidas' }, payload => {
+    cargarPartidas(); // Vuelve a cargar y renderizar la tabla automáticamente
+  })
+  .subscribe();
+
+// Carga inicial
+cargarPartidas();
+  </script>
 <style>
   :root {
     --bg: #101013;
