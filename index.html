@@ -135,150 +135,134 @@
 </head>
 <body>
 
-<!-- Supabase SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+// Configuración de Supabase
+const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
 
-<script>
-  const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// 1. Cargar partidas desde Supabase
+async function cargarPartidas() {
+  const { data: partidas, error } = await supabaseClient
+    .from('Partidas')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-  // A) Read games from Supabase and render to HTML table
-  async function cargarPartidas() {
-    const { data: partidas, error } = await supabaseClient
-      .from('Partidas')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Supabase fetch error:', error.message);
-      return;
-    }
-
-    renderTable(partidas);
+  if (error) {
+    console.error('Error cargando datos de Supabase:', error.message);
+    return;
   }
 
-  function renderTable(partidas) {
-    const tbody = document.querySelector('table tbody') || document.querySelector('#gamesTable tbody');
-    if (!tbody) return;
+  renderTabla(partidas);
+}
 
-    if (!partidas || partidas.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Log your first game on the left.</td></tr>`;
-      return;
-    }
+// 2. Pintar en el HTML
+function renderTabla(partidas) {
+  const tbody = document.querySelector('table tbody') || document.querySelector('#gamesTable tbody');
+  if (!tbody) return;
 
-    let rowsHtml = '';
-    partidas.forEach(p => {
-      let badgeClass = 'draw';
-      let resultText = p.result || 'DRAW';
-
-      if (resultText === 'WIN' || resultText === 'Victoria') {
-        badgeClass = 'win';
-        resultText = 'WIN';
-      } else if (resultText === 'LOSS' || resultText === 'Derrota') {
-        badgeClass = 'loss';
-        resultText = 'LOSS';
-      }
-
-      rowsHtml += `
-        <tr>
-          <td>${p.army || '-'}</td>
-          <td>${p.detachment || '-'}</td>
-          <td>${p.disposicion || p.disposition || '-'}</td>
-          <td>${p.opponent || '-'}</td>
-          <td>${p.vp_you ?? 0} - ${p.vp_opponent ?? 0}</td>
-          <td><span class="badge ${badgeClass}">${resultText}</span></td>
-        </tr>
-      `;
-    });
-
-    tbody.innerHTML = rowsHtml;
+  if (!partidas || partidas.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Log your first game on the left.</td></tr>`;
+    return;
   }
 
-  // B) Intercept form submission and force save
-  async function guardarPartida(e) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
+  let html = '';
+  partidas.forEach(p => {
+    let badgeClass = 'draw';
+    let resText = p.result || 'DRAW';
+
+    if (resText === 'WIN' || resText === 'Victoria') {
+      badgeClass = 'win';
+      resText = 'WIN';
+    } else if (resText === 'LOSS' || resText === 'Derrota') {
+      badgeClass = 'loss';
+      resText = 'LOSS';
     }
 
-    // Hide error messages from local template script
-    document.querySelectorAll('.error, [style*="color"]').forEach(el => {
-      if (el.textContent.includes('Could not save')) el.style.display = 'none';
-    });
-
-    const selects = Array.from(document.querySelectorAll('select'));
-    const armyVal = selects[0] ? selects[0].value : 'Thousand Sons';
-    const dispVal = selects[1] ? selects[1].value : 'Take and Hold';
-    const oppVal = selects[2] ? selects[2].value : 'Adeptus Astartes';
-    const oppDispVal = selects[3] ? selects[3].value : 'Purge the Foe';
-
-    const inputsNum = Array.from(document.querySelectorAll('input[type="number"]'));
-    const ptsVal = inputsNum[0] ? (parseInt(inputsNum[0].value) || 2000) : 2000;
-    const vpYouVal = inputsNum[1] ? (parseInt(inputsNum[1].value) || 0) : 0;
-    const vpOppVal = inputsNum[2] ? (parseInt(inputsNum[2].value) || 0) : 0;
-
-    const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'));
-    const myDets = [];
-    const oppDets = [];
-
-    checkboxes.forEach(cb => {
-      const text = cb.parentElement ? cb.parentElement.textContent.trim() : cb.value;
-      if (cb.closest('div')?.previousElementSibling?.textContent.includes("OPPONENT")) {
-        oppDets.push(text);
-      } else {
-        myDets.push(text);
-      }
-    });
-
-    const detachmentStr = myDets.join(', ') || 'Rubricae Phalanx';
-    const rivalDetachmentStr = oppDets.join(', ') || 'None';
-
-    let resultVal = 'DRAW';
-    if (vpYouVal > vpOppVal) resultVal = 'WIN';
-    else if (vpYouVal < vpOppVal) resultVal = 'LOSS';
-
-    const nuevaPartida = {
-      id: crypto.randomUUID(),
-      army: armyVal,
-      opponent: oppVal,
-      detachment: detachmentStr,
-      rivalDetachment: rivalDetachmentStr,
-      dpUsado: myDets.length || 3,
-      puntos: ptsVal,
-      disposicion: dispVal,
-      rivalDisposicion: oppDispVal,
-      mision: dispVal,
-      vp_you: vpYouVal,
-      vp_opponent: vpOppVal,
-      result: resultVal
-    };
-
-    const { data, error } = await supabaseClient
-      .from('Partidas')
-      .insert([nuevaPartida]);
-
-    if (error) {
-      alert('Supabase Error: ' + error.message);
-    } else {
-      alert('Game logged successfully!');
-      await cargarPartidas();
-    }
-  }
-
-  // C) Bind listener in capture phase to override default script
-  document.addEventListener('DOMContentLoaded', () => {
-    document.addEventListener('click', (e) => {
-      if (e.target && e.target.textContent.trim().includes('LOG GAME')) {
-        guardarPartida(e);
-      }
-    }, true);
-
-    cargarPartidas();
+    html += `
+      <tr>
+        <td>${p.army || '-'}</td>
+        <td>${p.detachment || '-'}</td>
+        <td>${p.disposicion || p.disposition || '-'}</td>
+        <td>${p.opponent || '-'}</td>
+        <td>${p.vp_you ?? 0} - ${p.vp_opponent ?? 0}</td>
+        <td><span class="badge ${badgeClass}">${resText}</span></td>
+      </tr>
+    `;
   });
-</script>
+
+  tbody.innerHTML = html;
+}
+
+// 3. Guardar en Supabase
+async function guardarPartida(e) {
+  if (e) e.preventDefault();
+
+  const selects = Array.from(document.querySelectorAll('select'));
+  const armyVal = selects[0] ? selects[0].value : 'Thousand Sons';
+  const dispVal = selects[1] ? selects[1].value : 'Take and Hold';
+  const oppVal = selects[2] ? selects[2].value : 'Adeptus Astartes';
+  const oppDispVal = selects[3] ? selects[3].value : 'Purge the Foe';
+
+  const inputsNum = Array.from(document.querySelectorAll('input[type="number"]'));
+  const ptsVal = inputsNum[0] ? (parseInt(inputsNum[0].value) || 2000) : 2000;
+  const vpYouVal = inputsNum[1] ? (parseInt(inputsNum[1].value) || 0) : 0;
+  const vpOppVal = inputsNum[2] ? (parseInt(inputsNum[2].value) || 0) : 0;
+
+  const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'));
+  const myDets = [];
+  const oppDets = [];
+
+  checkboxes.forEach(cb => {
+    const txt = cb.parentElement ? cb.parentElement.textContent.trim() : cb.value;
+    if (cb.closest('div')?.previousElementSibling?.textContent.includes("OPPONENT")) {
+      oppDets.push(txt);
+    } else {
+      myDets.push(txt);
+    }
+  });
+
+  const detachmentStr = myDets.join(', ') || 'Rubricae Phalanx';
+  const rivalDetachmentStr = oppDets.join(', ') || 'None';
+
+  let resultVal = 'DRAW';
+  if (vpYouVal > vpOppVal) resultVal = 'WIN';
+  else if (vpYouVal < vpOppVal) resultVal = 'LOSS';
+
+  const nuevaPartida = {
+    id: crypto.randomUUID(),
+    army: armyVal,
+    opponent: oppVal,
+    detachment: detachmentStr,
+    rivalDetachment: rivalDetachmentStr,
+    dpUsado: myDets.length || 3,
+    puntos: ptsVal,
+    disposicion: dispVal,
+    rivalDisposicion: oppDispVal,
+    mision: dispVal,
+    vp_you: vpYouVal,
+    vp_opponent: vpOppVal,
+    result: resultVal
+  };
+
+  const { error } = await supabaseClient.from('Partidas').insert([nuevaPartida]);
+
+  if (error) {
+    alert('Error al guardar en Supabase: ' + error.message);
+  } else {
+    alert('¡Partida registrada con éxito!');
+    await cargarPartidas();
+  }
+}
+
+// 4. Iniciar eventos
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.querySelector('button');
+  if (btn) {
+    btn.addEventListener('click', guardarPartida);
+  }
+  cargarPartidas();
+});
 </body>
 </html>
 
