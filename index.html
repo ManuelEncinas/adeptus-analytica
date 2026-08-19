@@ -6,17 +6,17 @@
 <!-- 1. Cargar el SDK de Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- 2. Código de conexión y guardado -->
 <script>
   // Credenciales de Supabase
   const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
 
-  // Inicializar el cliente guardándolo en 'supabaseClient'
+  // Inicialización única
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
   // A) Cargar datos de la tabla 'Partidas'
   async function cargarPartidas() {
-    const { data: partidas, error } = await supabase
+    const { data: partidas, error } = await supabaseClient
       .from('Partidas')
       .select('*')
       .order('created_at', { ascending: false });
@@ -33,7 +33,7 @@
   async function guardarPartida(event) {
     if (event) event.preventDefault();
 
-    // Cambia los 'id_de_input' por los id reales que tengan tus casillas HTML
+    // NOTA: Reemplaza los id ('id_input_army', etc.) por los id reales de tus inputs en el HTML
     const nuevaPartida = {
       army: document.getElementById('id_input_army')?.value,
       opponent: document.getElementById('id_input_opponent')?.value,
@@ -42,7 +42,7 @@
       result: document.getElementById('id_input_result')?.value
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('Partidas')
       .insert([nuevaPartida]);
 
@@ -56,7 +56,7 @@
   }
 
   // C) Escuchar cambios en tiempo real
-  supabase
+  supabaseClient
     .channel('cambios-partidas')
     .on(
       'postgres_changes',
@@ -66,6 +66,7 @@
     .subscribe();
 
   // D) Asignar el botón o formulario para guardar
+  // NOTA: Reemplaza 'id_de_tu_formulario' por el id de tu <form> o asigna la función al evento click del botón LOG GAME
   const formulario = document.getElementById('id_de_tu_formulario');
   if (formulario) {
     formulario.addEventListener('submit', guardarPartida);
