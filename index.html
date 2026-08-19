@@ -135,15 +135,17 @@
 </head>
 <body>
 
+<!-- 1. Librería de Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<!-- 2. Lógica de renderizado y guardado -->
 <script>
   const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
 
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // A) Cargar datos de Supabase y pintar en la tabla
+  // A) Cargar datos de Supabase
   async function cargarPartidas() {
     const { data: partidas, error } = await supabaseClient
       .from('Partidas')
@@ -151,19 +153,21 @@
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error Supabase al cargar:', error.message);
+      console.error('Error al cargar datos:', error.message);
       return;
     }
 
+    console.log('Partidas cargadas:', partidas);
     pintarTabla(partidas);
   }
 
-  // B) Renderizar filas en la tabla GAME HISTORY
+  // B) Renderizar filas respetando la estructura del HTML
   function pintarTabla(partidas) {
     const tabla = document.querySelector('table');
     if (!tabla) return;
 
-    let html = `
+    // Asegurar estructura con thead y tbody
+    let htmlHeader = `
       <thead>
         <tr>
           <th>ARMY</th>
@@ -174,35 +178,49 @@
           <th>RESULT</th>
         </tr>
       </thead>
-      <tbody>
     `;
 
+    let htmlBody = '<tbody>';
+
     if (!partidas || partidas.length === 0) {
-      html += `<tr><td colspan="6" class="empty">Log your first game on the left.</td></tr>`;
+      htmlBody += `
+        <tr>
+          <td colspan="6" class="empty">Log your first game on the left.</td>
+        </tr>
+      `;
     } else {
       partidas.forEach(p => {
         let badgeClass = 'draw';
-        if (p.result === 'WIN' || p.result === 'Victoria') badgeClass = 'win';
-        if (p.result === 'LOSS' || p.result === 'Derrota') badgeClass = 'loss';
+        let resText = p.result || 'DRAW';
+        
+        if (p.result === 'WIN' || p.result === 'Victoria') {
+          badgeClass = 'win';
+          resText = 'WIN';
+        } else if (p.result === 'LOSS' || p.result === 'Derrota') {
+          badgeClass = 'loss';
+          resText = 'LOSS';
+        }
 
-        html += `
+        htmlBody += `
           <tr>
             <td>${p.army || '-'}</td>
             <td>${p.detachment || '-'}</td>
-            <td>${p.disposicion || '-'}</td>
+            <td>${p.disposicion || p.disposition || '-'}</td>
             <td>${p.opponent || '-'}</td>
             <td>${p.vp_you ?? 0} - ${p.vp_opponent ?? 0}</td>
-            <td><span class="badge ${badgeClass}">${p.result || 'DRAW'}</span></td>
+            <td><span class="badge ${badgeClass}">${resText}</span></td>
           </tr>
         `;
       });
     }
 
-    html += `</tbody>`;
-    tabla.innerHTML = html;
+    htmlBody += '</tbody>';
+
+    // Inyectar ambos bloques para reconstruir la tabla sin romper el CSS
+    tabla.innerHTML = htmlHeader + htmlBody;
   }
 
-  // C) Guardar partida mapeando tus columnas exactas
+  // C) Guardar partida
   async function guardarPartida(event) {
     if (event) {
       event.preventDefault();
@@ -223,9 +241,8 @@
     if (vpTu > vpOponente) resultado = 'WIN';
     else if (vpTu < vpOponente) resultado = 'LOSS';
 
-    // Objeto ajustado exacto a la estructura de tu base de datos
     const nuevaPartida = {
-      id: crypto.randomUUID(), // Genera un ID único para evitar conflictos
+      id: crypto.randomUUID(),
       army: miEjercito,
       opponent: oponenteEjercito,
       detachment: 'Fulguris Task Force',
@@ -240,8 +257,6 @@
       result: resultado
     };
 
-    console.log('Enviando a Supabase:', nuevaPartida);
-
     const { data, error } = await supabaseClient
       .from('Partidas')
       .insert([nuevaPartida]);
@@ -250,12 +265,12 @@
       alert('Error en Supabase: ' + error.message);
       console.error(error);
     } else {
-      alert('¡Partida guardada con éxito!');
+      alert('¡Partida registrada exitosamente!');
       cargarPartidas();
     }
   }
 
-  // D) Interceptador
+  // D) Asignar listeners
   window.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (e) => {
       if (e.target && e.target.textContent.trim().includes('LOG GAME')) {
