@@ -30,31 +30,49 @@
 
   // B) Guardar una nueva partida
   async function guardarPartida(event) {
-    if (event) event.preventDefault();
+  if (event) event.preventDefault();
 
-    // Extraemos los valores de los elementos de tu página
-    const armySelect = document.querySelector('select');
-    const vpInputs = document.querySelectorAll('input[type="number"]');
+  // 1. Obtener los selectores de ejércitos (primer select = tú, segundo select = oponente)
+  const selects = document.querySelectorAll('select');
+  const miEjercito = selects[0] ? selects[0].value : 'Adeptus Astartes';
+  const oponenteEjercito = selects[1] ? selects[1].value : 'Astra Militarum';
 
-    const nuevaPartida = {
-      army: armySelect ? armySelect.value : 'Adeptus Astartes',
-      opponent: 'Enemigo',
-      vp_you: vpInputs[1] ? parseInt(vpInputs[1].value) : 85,
-      vp_opponent: vpInputs[2] ? parseInt(vpInputs[2].value) : 60,
-      result: 'Victoria'
-    };
+  // 2. Obtener las casillas de Puntos de Victoria (tomamos las últimas dos casillas numéricas)
+  const inputsNumericos = document.querySelectorAll('input[type="number"]');
+  const totalInputs = inputsNumericos.length;
+  
+  // Las casillas de VP son los últimos dos inputs del formulario
+  const vpTu = totalInputs >= 2 ? parseInt(inputsNumericos[totalInputs - 2].value) || 0 : 0;
+  const vpOponente = totalInputs >= 1 ? parseInt(inputsNumericos[totalInputs - 1].value) || 0 : 0;
 
-    const { data, error } = await supabaseClient
-      .from('Partidas')
-      .insert([nuevaPartida]);
+  // 3. Determinar el resultado automáticamente
+  let resultado = 'Empate';
+  if (vpTu > vpOponente) resultado = 'Victoria';
+  else if (vpTu < vpOponente) resultado = 'Derrota';
 
-    if (error) {
-      alert('Error al guardar: ' + error.message);
-      console.error(error);
-    } else {
-      alert('¡Partida registrada con éxito!');
-      cargarPartidas();
-    }
+  // Objeto a enviar a Supabase
+  const nuevaPartida = {
+    army: miEjercito,
+    opponent: oponenteEjercito,
+    vp_you: vpTu,
+    vp_opponent: vpOponente,
+    result: resultado
+  };
+
+  console.log('Enviando a Supabase:', nuevaPartida);
+
+  // 4. Insertar en Supabase
+  const { data, error } = await supabaseClient
+    .from('Partidas')
+    .insert([nuevaPartida]);
+
+  if (error) {
+    alert('Error al guardar en Supabase: ' + error.message);
+    console.error('Detalle del error:', error);
+  } else {
+    alert('¡Partida registrada con éxito!');
+    cargarPartidas();
+  }
   }
 
   // C) Escuchar cambios en tiempo real
