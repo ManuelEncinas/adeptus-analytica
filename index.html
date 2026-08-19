@@ -3,46 +3,77 @@
 <head>
 <meta charset="UTF-8">
 <title>Adeptus Analytica - Battle Log</title>
+<!-- 1. Cargar el SDK de Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- 2. Código de conexión y guardado -->
 <script>
-   // Inicializar Supabase
-const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // Credenciales de Supabase
+  const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0'; // <-- Pon tu clave de Supabase aquí
 
-// 1. Cargar las partidas al abrir la página
-async function cargarPartidas() {
-  const { data: partidas, error } = await supabase
-    .from('partidas')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  if (!error) {
-    renderizarTabla(partidas); // Función que dibuja tus filas en el GAME HISTORY
+  // A) Cargar datos de la tabla 'Partidas'
+  async function cargarPartidas() {
+    const { data: partidas, error } = await supabase
+      .from('Partidas')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error al cargar datos:', error.message);
+      return;
+    }
+
+    console.log('Partidas cargadas:', partidas);
   }
-}
 
-// 2. Guardar una partida al dar clic en LOG GAME
-async function guardarPartida(datosPartida) {
-  const { error } = await supabase
-    .from('partidas')
-    .insert([datosPartida]);
+  // B) Guardar una nueva partida
+  async function guardarPartida(event) {
+    if (event) event.preventDefault();
 
-  if (error) console.error('Error al guardar:', error);
-}
+    // Cambia los 'id_de_input' por los id reales que tengan tus casillas HTML
+    const nuevaPartida = {
+      army: document.getElementById('id_input_army')?.value,
+      opponent: document.getElementById('id_input_opponent')?.value,
+      vp_you: document.getElementById('id_input_vp_you')?.value,
+      vp_opponent: document.getElementById('id_input_vp_opponent')?.value,
+      result: document.getElementById('id_input_result')?.value
+    };
 
-// 3. ACTUALIZACIÓN EN TIEMPO REAL (Realtime)
-// Esto detecta cuando agregas un registro desde tu teléfono y actualiza la PC al instante
-supabase
-  .channel('partidas-db')
-  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'partidas' }, payload => {
-    cargarPartidas(); // Vuelve a cargar y renderizar la tabla automáticamente
-  })
-  .subscribe();
+    const { data, error } = await supabase
+      .from('Partidas')
+      .insert([nuevaPartida]);
 
-// Carga inicial
-cargarPartidas();
-  </script>
+    if (error) {
+      alert('Error al guardar: ' + error.message);
+      console.error(error);
+    } else {
+      alert('¡Partida registrada con éxito!');
+      cargarPartidas();
+    }
+  }
+
+  // C) Escuchar cambios en tiempo real
+  supabase
+    .channel('cambios-partidas')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'Partidas' },
+      () => cargarPartidas()
+    )
+    .subscribe();
+
+  // D) Asignar el botón o formulario para guardar
+  const formulario = document.getElementById('id_de_tu_formulario');
+  if (formulario) {
+    formulario.addEventListener('submit', guardarPartida);
+  }
+
+  // Carga inicial
+  cargarPartidas();
+</script>
 <style>
   :root {
     --bg: #101013;
