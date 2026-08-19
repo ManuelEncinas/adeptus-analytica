@@ -143,7 +143,7 @@
 
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // 1. Cargar partidas al iniciar o recargar la página
+  // 1. Obtener todas las partidas de Supabase al cargar la página
   async function cargarPartidas() {
     const { data: partidas, error } = await supabaseClient
       .from('Partidas')
@@ -151,14 +151,15 @@
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error al leer Supabase:', error.message);
+      console.error('Error leyendo Supabase:', error.message);
       return;
     }
 
     renderTabla(partidas);
+    actualizarMetricas(partidas);
   }
 
-  // 2. Renderizar filas respetando las 7 columnas de tu <thead>
+  // 2. Pintar la tabla manteniendo alineación exacta con tus 7 columnas
   function renderTabla(partidas) {
     const tbody = document.querySelector('table tbody') || document.querySelector('#gamesTable tbody');
     if (!tbody) return;
@@ -171,6 +172,7 @@
     let html = '';
     partidas.forEach(p => {
       let badgeClass = p.result === 'WIN' ? 'win' : (p.result === 'LOSS' ? 'loss' : 'draw');
+      
       html += `
         <tr>
           <td>${p.army || '-'}</td>
@@ -179,7 +181,7 @@
           <td>${p.opponent || '-'}</td>
           <td>${p.vp_you ?? 0} - ${p.vp_opponent ?? 0}</td>
           <td><span class="badge ${badgeClass}">${p.result || 'DRAW'}</span></td>
-          <td></td> <!-- Celda 7 para alinear con la cabecera vacía -->
+          <td></td>
         </tr>
       `;
     });
@@ -187,9 +189,35 @@
     tbody.innerHTML = html;
   }
 
-  // 3. Guardar incluyendo el valor de dpUsado
+  // 3. Actualizar tarjetas superiores (GAMES, WIN RATE, W/L/D)
+  function actualizarMetricas(partidas) {
+    if (!partidas) return;
+
+    const total = partidas.length;
+    const wins = partidas.filter(p => p.result === 'WIN').length;
+    const losses = partidas.filter(p => p.result === 'LOSS').length;
+    const draws = partidas.filter(p => p.result === 'DRAW').length;
+    const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+
+    // Buscar contenedores de estadísticas en la interfaz
+    const cards = document.querySelectorAll('.stat-card, .metric-card, div[class*="stat"]');
+    cards.forEach(card => {
+      const text = card.textContent.toLowerCase();
+      const valEl = card.querySelector('.value, h2, h3, p, span');
+      
+      if (!valEl) return;
+      if (text.includes('games')) valEl.textContent = total;
+      if (text.includes('win rate')) valEl.textContent = `${winRate}%`;
+      if (text.includes('w/l/d') || text.includes('w / l')) valEl.textContent = `${wins}/${losses}/${draws}`;
+    });
+  }
+
+  // 4. Guardar nueva partida en Supabase
   async function guardarPartida(e) {
-    if (e) e.preventDefault();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
     const selects = Array.from(document.querySelectorAll('select'));
     const inputsNum = Array.from(document.querySelectorAll('input[type="number"]'));
@@ -219,7 +247,7 @@
       opponent: selects[2]?.value || 'Adeptus Astartes',
       detachment: myDets.join(', ') || 'Standard',
       rivalDetachment: oppDets.join(', ') || 'Standard',
-      dpUsado: myDets.length || 0, // <--- Guardando tus DP usados
+      dpUsado: myDets.length || 0,
       puntos: inputsNum[0] ? (parseInt(inputsNum[0].value) || 2000) : 2000,
       disposicion: selects[1]?.value || 'Take and Hold',
       rivalDisposicion: selects[3]?.value || 'Take and Hold',
@@ -233,17 +261,23 @@
       .insert([nuevaPartida]);
 
     if (error) {
-      alert('Error en Supabase: ' + error.message);
+      alert('Error guardando en Supabase: ' + error.message);
     } else {
       await cargarPartidas();
     }
   }
 
+  // 5. Vincular eventos e inicializar lectura
   document.addEventListener('DOMContentLoaded', () => {
     const btn = document.querySelector('button');
     if (btn) btn.addEventListener('click', guardarPartida);
+    
+    // Carga inicial
     cargarPartidas();
   });
+
+  // Asegurar persistencia al recargar o volver a entrar a la pestaña
+  window.addEventListener('load', cargarPartidas);
 </script>
 </body>
 </html>
