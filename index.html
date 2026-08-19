@@ -10,10 +10,10 @@
 <script>
   // Credenciales de Supabase
   const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0'; // <-- Pon tu clave de Supabase aquí
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
 
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+  // Inicializar el cliente guardándolo en 'supabaseClient'
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   // A) Cargar datos de la tabla 'Partidas'
   async function cargarPartidas() {
     const { data: partidas, error } = await supabase
