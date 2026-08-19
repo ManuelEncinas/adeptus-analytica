@@ -3,18 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <title>Adeptus Analytica - Battle Log</title>
-<!-- 1. Cargar el SDK de Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-  // Credenciales de Supabase
+  // 1. Inicialización de Supabase
   const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
 
-  // Inicialización única
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // A) Cargar datos de la tabla 'Partidas'
+  // 2. Cargar partidas desde la base de datos y dibujarlas en la tabla
   async function cargarPartidas() {
     const { data: partidas, error } = await supabaseClient
       .from('Partidas')
@@ -25,76 +23,87 @@
       return;
     }
 
-    console.log('Partidas cargadas:', partidas);
+    console.log('Partidas desde la base de datos:', partidas);
+    pintarTabla(partidas);
   }
 
-  // B) Guardar una nueva partida
-  async function guardarPartida(event) {
-  if (event) event.preventDefault();
+  // 3. Función para renderizar las filas en la tabla de GAME HISTORY
+  function pintarTabla(partidas) {
+    const tabla = document.querySelector('table tbody') || document.querySelector('table');
+    if (!tabla) return;
 
-  // 1. Obtener los selectores de ejércitos (primer select = tú, segundo select = oponente)
-  const selects = document.querySelectorAll('select');
-  const miEjercito = selects[0] ? selects[0].value : 'Adeptus Astartes';
-  const oponenteEjercito = selects[1] ? selects[1].value : 'Astra Militarum';
+    // Si hay encabezado <thead>, preservarlo y limpiar solo <tbody>
+    let filasHTML = '';
 
-  // 2. Obtener las casillas de Puntos de Victoria (tomamos las últimas dos casillas numéricas)
-  const inputsNumericos = document.querySelectorAll('input[type="number"]');
-  const totalInputs = inputsNumericos.length;
-  
-  // Las casillas de VP son los últimos dos inputs del formulario
-  const vpTu = totalInputs >= 2 ? parseInt(inputsNumericos[totalInputs - 2].value) || 0 : 0;
-  const vpOponente = totalInputs >= 1 ? parseInt(inputsNumericos[totalInputs - 1].value) || 0 : 0;
+    partidas.forEach(p => {
+      filasHTML += `
+        <tr>
+          <td>${p.army || '-'}</td>
+          <td>${p.detachment || '-'}</td>
+          <td>${p.disposition || '-'}</td>
+          <td>${p.opponent || '-'}</td>
+          <td>${p.vp_you ?? 0} - ${p.vp_opponent ?? 0}</td>
+          <td>${p.result || '-'}</td>
+        </tr>
+      `;
+    });
 
-  // 3. Determinar el resultado automáticamente
-  let resultado = 'Empate';
-  if (vpTu > vpOponente) resultado = 'Victoria';
-  else if (vpTu < vpOponente) resultado = 'Derrota';
-
-  // Objeto a enviar a Supabase
-  const nuevaPartida = {
-    army: miEjercito,
-    opponent: oponenteEjercito,
-    vp_you: vpTu,
-    vp_opponent: vpOponente,
-    result: resultado
-  };
-
-  console.log('Enviando a Supabase:', nuevaPartida);
-
-  // 4. Insertar en Supabase
-  const { data, error } = await supabaseClient
-    .from('Partidas')
-    .insert([nuevaPartida]);
-
-  if (error) {
-    alert('Error al guardar en Supabase: ' + error.message);
-    console.error('Detalle del error:', error);
-  } else {
-    alert('¡Partida registrada con éxito!');
-    cargarPartidas();
-  }
-  }
-
-  // C) Escuchar cambios en tiempo real
-  supabaseClient
-    .channel('cambios-partidas')
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'Partidas' },
-      () => cargarPartidas()
-    )
-    .subscribe();
-
-  // D) Vincular el evento al botón [LOG GAME]
-  document.querySelectorAll('button').forEach(boton => {
-    if (boton.textContent.includes('LOG GAME')) {
-      boton.addEventListener('click', guardarPartida);
+    // Actualiza el contenido de la tabla manteniendo los datos al recargar
+    const tbody = tabla.querySelector('tbody');
+    if (tbody) {
+      tbody.innerHTML = filasHTML;
     }
-  });
+  }
 
-  // Carga inicial al abrir la página
-  cargarPartidas();
+  // 4. Guardar en Supabase
+  async function guardarPartida(event) {
+    if (event) event.preventDefault();
+
+    const selects = document.querySelectorAll('select');
+    const miEjercito = selects[0] ? selects[0].value : 'Adeptus Astartes';
+    const oponenteEjercito = selects[1] ? selects[1].value : 'Desconocido';
+
+    const inputsNum = document.querySelectorAll('input[type="number"]');
+    const vpTu = inputsNum.length >= 2 ? (parseInt(inputsNum[inputsNum.length - 2].value) || 0) : 0;
+    const vpOponente = inputsNum.length >= 1 ? (parseInt(inputsNum[inputsNum.length - 1].value) || 0) : 0;
+
+    let resultado = 'Empate';
+    if (vpTu > vpOponente) resultado = 'Victoria';
+    else if (vpTu < vpOponente) resultado = 'Derrota';
+
+    const nuevaPartida = {
+      army: miEjercito,
+      opponent: oponenteEjercito,
+      vp_you: vpTu,
+      vp_opponent: vpOponente,
+      result: resultado
+    };
+
+    const { data, error } = await supabaseClient
+      .from('Partidas')
+      .insert([nuevaPartida]);
+
+    if (error) {
+      alert('Error al guardar en la base de datos: ' + error.message);
+      console.error(error);
+    } else {
+      alert('¡Partida guardada permanentemente!');
+      cargarPartidas(); // Recarga y renderiza la tabla con los datos de Supabase
+    }
+  }
+
+  // 5. Asignar eventos
+  document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.textContent.trim().includes('LOG GAME')) {
+        guardarPartida(e);
+      }
+    });
+
+    cargarPartidas();
+  });
 </script>
+
 <style>
   :root {
     --bg: #101013;
