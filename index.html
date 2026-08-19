@@ -143,7 +143,7 @@
 
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // 1. Obtener todas las partidas de Supabase al cargar la página
+  // 1. Cargar y corregir las tablas desde Supabase
   async function cargarPartidas() {
     const { data: partidas, error } = await supabaseClient
       .from('Partidas')
@@ -151,76 +151,176 @@
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error leyendo Supabase:', error.message);
+      console.error('Error en Supabase:', error.message);
       return;
     }
 
-    renderTabla(partidas);
-    actualizarMetricas(partidas);
+    renderTablas(partidas);
+    actualizarMetricasSuperiores(partidas);
   }
 
-  // 2. Pintar la tabla manteniendo alineación exacta con tus 7 columnas
-  function renderTabla(partidas) {
-    const tbody = document.querySelector('table tbody') || document.querySelector('#gamesTable tbody');
-    if (!tbody) return;
+  // 2. Pintar tanto GAME HISTORY como WIN RATE BY ARMY con los puntos reales
+  function renderTablas(partidas) {
+    if (!partidas || partidas.length === 0) return;
 
-    if (!partidas || partidas.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Log your first game on the left.</td></tr>`;
-      return;
+    // A) Tabla GAME HISTORY (Abajo)
+    const tablaBottom = document.querySelectorAll('table')[1] || document.querySelector('#gamesTable') || document.querySelector('table');
+    const tbodyBottom = tablaBottom ? tablaBottom.querySelector('tbody') : null;
+
+    if (tbodyBottom) {
+      let htmlBottom = '';
+      partidas.forEach(p => {
+        let badgeClass = 'draw';
+        let resText = p.result || 'DRAW';
+        if (resText === 'WIN') badgeClass = 'win';
+        if (resText === 'LOSS') badgeClass = 'loss';
+
+        htmlBottom += `
+          <tr>
+            <td>${p.army || '-'}</td>
+            <td>${p.detachment || '-'} (${p.dpUsado || 3} DP)</td>
+            <td>${p.disposicion || '-'}</td>
+            <td>${p.opponent || '-'}</td>
+            <td><strong>${p.vp_you ?? 0}</strong> - <strong>${p.vp_opponent ?? 0}</strong></td>
+            <td><span class="badge ${badgeClass}">${resText}</span></td>
+            <td></td>
+          </tr>
+        `;
+      });
+      tbodyBottom.innerHTML = htmlBottom;
     }
 
-    let html = '';
-    partidas.forEach(p => {
-      let badgeClass = p.result === 'WIN' ? 'win' : (p.result === 'LOSS' ? 'loss' : 'draw');
-      
-      html += `
-        <tr>
-          <td>${p.army || '-'}</td>
-          <td>${p.detachment || '-'}</td>
-          <td>${p.disposicion || '-'}</td>
-          <td>${p.opponent || '-'}</td>
-          <td>${p.vp_you ?? 0} - ${p.vp_opponent ?? 0}</td>
-          <td><span class="badge ${badgeClass}">${p.result || 'DRAW'}</span></td>
-          <td></td>
-        </tr>
-      `;
-    });
+    // B) Tabla WIN RATE BY ARMY (Arriba) - Corregir los 0 - 0 y los DRAW
+    const tablaTop = document.querySelectorAll('table')[0];
+    const tbodyTop = tablaTop ? tablaTop.querySelector('tbody') : null;
 
-    tbody.innerHTML = html;
+    if (tbodyTop && tbodyTop !== tbodyBottom) {
+      let htmlTop = '';
+      partidas.forEach(p => {
+        let badgeClass = 'draw';
+        let resText = p.result || 'DRAW';
+
+        // Recalcular resultado si los puntos existen
+        const vpYou = p.vp_you ?? 0;
+        const vpOpp = p.vp_opponent ?? 0;
+
+        if (vpYou > vpOpp) {
+          badgeClass = 'win';
+          resText = 'WIN';
+        } else if (vpYou < vpOpp) {
+          badgeClass = 'loss';
+          resText = 'LOSS';
+        }
+
+        htmlTop += `
+          <tr>
+            <td>${p.army || '-'}</td>
+            <td>${p.detachment || '-'} (${p.dpUsado || 3} DP) · ${p.disposicion || '-'}</td>
+            <td>${p.disposicion || '-'}</td>
+            <td>${p.opponent || '-'}</td>
+            <td><strong>${vpYou}</strong><br><small style="opacity:0.6">${vpOpp}</small></td>
+            <td><span class="badge ${badgeClass}">${resText}</span></td>
+          </tr>
+        `;
+      });
+      tbodyTop.innerHTML = htmlTop;
+    }
   }
 
-  // 3. Actualizar tarjetas superiores (GAMES, WIN RATE, W/L/D)
-  function actualizarMetricas(partidas) {
+  // 3. Actualizar OVERALL WIN RATE (GAMES, WIN RATE %, W/L/D)
+  function actualizarMetricasSuperiores(partidas) {
     if (!partidas) return;
 
     const total = partidas.length;
-    const wins = partidas.filter(p => p.result === 'WIN').length;
-    const losses = partidas.filter(p => p.result === 'LOSS').length;
-    const draws = partidas.filter(p => p.result === 'DRAW').length;
+    let wins = 0, losses = 0, draws = 0;
+
+    partidas.forEach(p => {
+      const vy = p.vp_you ?? 0;
+      const vo = p.vp_opponent ?? 0;
+      if (vy > vo || p.result === 'WIN') wins++;
+      else if (vy < vo || p.result === 'LOSS') losses++;
+      else draws++;
+    });
+
     const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
 
-    // Buscar contenedores de estadísticas en la interfaz
-    const cards = document.querySelectorAll('.stat-card, .metric-card, div[class*="stat"]');
-    cards.forEach(card => {
-      const text = card.textContent.toLowerCase();
-      const valEl = card.querySelector('.value, h2, h3, p, span');
-      
-      if (!valEl) return;
-      if (text.includes('games')) valEl.textContent = total;
-      if (text.includes('win rate')) valEl.textContent = `${winRate}%`;
-      if (text.includes('w/l/d') || text.includes('w / l')) valEl.textContent = `${wins}/${losses}/${draws}`;
+    // Buscar los contenedores de las métricas
+    const cards = document.querySelectorAll('div, span');
+    cards.forEach(c => {
+      const txt = c.textContent.trim().toUpperCase();
+      if (txt === 'GAMES') {
+        const val = c.parentElement?.querySelector('div:nth-child(2), span, h2, p');
+        if (val) val.textContent = total;
+      }
+      if (txt === 'WIN RATE') {
+        const val = c.parentElement?.querySelector('div:nth-child(2), span, h2, p');
+        if (val) val.textContent = `${winRate}%`;
+      }
+      if (txt === 'W / L / D' || txt === 'W/L/D') {
+        const val = c.parentElement?.querySelector('div:nth-child(2), span, h2, p');
+        if (val) val.textContent = `${wins}/${losses}/${draws}`;
+      }
     });
   }
 
-  // 4. Guardar nueva partida en Supabase
+  // 4. Capturar puntos ANTES de que la plantilla borre los campos
   async function guardarPartida(e) {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
+      e.stopImmediatePropagation();
+    }
+
+    // Ocultar mensaje rojo de error
+    document.querySelectorAll('*').forEach(el => {
+      if (el.children.length === 0 && el.textContent.includes('Could not save')) {
+        el.style.display = 'none';
+      }
+    });
+
+    // LEER PUNTOS DIRECTAMENTE DE LOS INPUTS DE LA PANTALLA
+    const inputsNum = Array.from(document.querySelectorAll('input[type="number"]'));
+    const allInputs = Array.from(document.querySelectorAll('input'));
+
+    let vpYouVal = 0;
+    let vpOppVal = 0;
+
+    // Leer campos de la pantalla por su etiqueta contenedora
+    allInputs.forEach(input => {
+      const parentTxt = input.parentElement ? input.parentElement.textContent.toUpperCase() : '';
+      if (parentTxt.includes('YOU')) {
+        const val = parseInt(input.value);
+        if (!isNaN(val)) vpYouVal = val;
+      }
+      if (parentTxt.includes('OPPONENT')) {
+        const val = parseInt(input.value);
+        if (!isNaN(val)) vpOppVal = val;
+      }
+    });
+
+    // Si los inputs numéricos generales tienen valores, usarlos de respaldo
+    if (vpYouVal === 0 && vpOppVal === 0 && inputsNum.length >= 3) {
+      vpYouVal = parseInt(inputsNum[1].value) || 0;
+      vpOppVal = parseInt(inputsNum[2].value) || 0;
     }
 
     const selects = Array.from(document.querySelectorAll('select'));
-    const inputsNum = Array.from(document.querySelectorAll('input[type="number"]'));
+    const armyVal = selects[0]?.value || 'Chaos Knights';
+    const dispVal = selects[1]?.value || 'Purge the Foe';
+    const oppVal = selects[2]?.value || 'Adeptus Astartes';
+    const oppDispVal = selects[3]?.value || 'Disruption';
+
+    const ptsInput = document.querySelector('input[placeholder*="2000"]') || inputsNum[0];
+    const ptsVal = ptsInput ? (parseInt(ptsInput.value) || 2000) : 2000;
+
+    const missionInput = document.querySelector('input[placeholder*="mission" i]');
+    let missionVal = missionInput ? missionInput.value.trim() : '';
+    if (!missionVal) missionVal = dispVal;
+
+    // Calcular resultado
+    let resultVal = 'DRAW';
+    if (vpYouVal > vpOppVal) resultVal = 'WIN';
+    else if (vpYouVal < vpOppVal) resultVal = 'LOSS';
 
     const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'));
     const myDets = [];
@@ -235,22 +335,16 @@
       }
     });
 
-    const vpYouVal = inputsNum[1] ? (parseInt(inputsNum[1].value) || 0) : 0;
-    const vpOppVal = inputsNum[2] ? (parseInt(inputsNum[2].value) || 0) : 0;
-
-    let resultVal = 'DRAW';
-    if (vpYouVal > vpOppVal) resultVal = 'WIN';
-    else if (vpYouVal < vpOppVal) resultVal = 'LOSS';
-
     const nuevaPartida = {
-      army: selects[0]?.value || 'Adeptus Astartes',
-      opponent: selects[2]?.value || 'Adeptus Astartes',
-      detachment: myDets.join(', ') || 'Standard',
-      rivalDetachment: oppDets.join(', ') || 'Standard',
-      dpUsado: myDets.length || 0,
-      puntos: inputsNum[0] ? (parseInt(inputsNum[0].value) || 2000) : 2000,
-      disposicion: selects[1]?.value || 'Take and Hold',
-      rivalDisposicion: selects[3]?.value || 'Take and Hold',
+      army: armyVal,
+      opponent: oppVal,
+      detachment: myDets.join(', ') || 'Infernal Lance',
+      rivalDetachment: oppDets.join(', ') || 'None',
+      dpUsado: myDets.length || 3,
+      puntos: ptsVal,
+      disposicion: dispVal,
+      rivalDisposicion: oppDispVal,
+      mision: missionVal,
       vp_you: vpYouVal,
       vp_opponent: vpOppVal,
       result: resultVal
@@ -261,23 +355,26 @@
       .insert([nuevaPartida]);
 
     if (error) {
-      alert('Error guardando en Supabase: ' + error.message);
+      alert('Error en Supabase: ' + error.message);
     } else {
       await cargarPartidas();
     }
   }
 
-  // 5. Vincular eventos e inicializar lectura
+  // 5. Vincular evento de clic e inicializar
   document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.querySelector('button');
-    if (btn) btn.addEventListener('click', guardarPartida);
-    
-    // Carga inicial
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.textContent.trim().includes('LOG GAME')) {
+        guardarPartida(e);
+      }
+    }, true);
+
     cargarPartidas();
   });
 
-  // Asegurar persistencia al recargar o volver a entrar a la pestaña
-  window.addEventListener('load', cargarPartidas);
+  window.addEventListener('load', () => {
+    setTimeout(cargarPartidas, 400);
+  });
 </script>
 </body>
 </html>
