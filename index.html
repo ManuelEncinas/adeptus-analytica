@@ -1,239 +1,271 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Adeptus Analytica - Battle Log</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script>
-  // 1. Inicialización de Supabase
-  const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
-
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  // 2. Cargar partidas desde la base de datos y dibujarlas en la tabla
-  async function cargarPartidas() {
-    const { data: partidas, error } = await supabaseClient
-      .from('Partidas')
-      .select('*');
-
-    if (error) {
-      console.error('Error al cargar datos:', error.message);
-      return;
+  <meta charset="UTF-8">
+  <title>Adeptus Analytica - Battle Log</title>
+  <style>
+    :root {
+      --bg: #101013;
+      --panel: #17171b;
+      --panel-2: #1e1e23;
+      --border: #313138;
+      --gold: #b08d45;
+      --gold-dim: #7d6531;
+      --red: #8c2a2a;
+      --text: #e6e1d3;
+      --text-dim: #9a978c;
+      --win: #4f7a3f;
+      --loss: #8c2a2a;
+      --draw: #7d6531;
     }
-
-    console.log('Partidas desde la base de datos:', partidas);
-    pintarTabla(partidas);
-  }
-
-  // 3. Función para renderizar las filas en la tabla de GAME HISTORY
-  function pintarTabla(partidas) {
-    const tabla = document.querySelector('table tbody') || document.querySelector('table');
-    if (!tabla) return;
-
-    // Si hay encabezado <thead>, preservarlo y limpiar solo <tbody>
-    let filasHTML = '';
-
-    partidas.forEach(p => {
-      filasHTML += `
-        <tr>
-          <td>${p.army || '-'}</td>
-          <td>${p.detachment || '-'}</td>
-          <td>${p.disposition || '-'}</td>
-          <td>${p.opponent || '-'}</td>
-          <td>${p.vp_you ?? 0} - ${p.vp_opponent ?? 0}</td>
-          <td>${p.result || '-'}</td>
-        </tr>
-      `;
-    });
-
-    // Actualiza el contenido de la tabla manteniendo los datos al recargar
-    const tbody = tabla.querySelector('tbody');
-    if (tbody) {
-      tbody.innerHTML = filasHTML;
+    * { box-sizing: border-box; }
+    
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Georgia', 'Times New Roman', serif;
+      margin: 0;
+      padding: 24px;
     }
-  }
-
-  // 4. Guardar en Supabase
-  async function guardarPartida(event) {
-    if (event) event.preventDefault();
-
-    const selects = document.querySelectorAll('select');
-    const miEjercito = selects[0] ? selects[0].value : 'Adeptus Astartes';
-    const oponenteEjercito = selects[1] ? selects[1].value : 'Desconocido';
-
-    const inputsNum = document.querySelectorAll('input[type="number"]');
-    const vpTu = inputsNum.length >= 2 ? (parseInt(inputsNum[inputsNum.length - 2].value) || 0) : 0;
-    const vpOponente = inputsNum.length >= 1 ? (parseInt(inputsNum[inputsNum.length - 1].value) || 0) : 0;
-
-    let resultado = 'Empate';
-    if (vpTu > vpOponente) resultado = 'Victoria';
-    else if (vpTu < vpOponente) resultado = 'Derrota';
-
-    const nuevaPartida = {
-      army: miEjercito,
-      opponent: oponenteEjercito,
-      vp_you: vpTu,
-      vp_opponent: vpOponente,
-      result: resultado
-    };
-
-    const { data, error } = await supabaseClient
-      .from('Partidas')
-      .insert([nuevaPartida]);
-
-    if (error) {
-      alert('Error al guardar en la base de datos: ' + error.message);
-      console.error(error);
-    } else {
-      alert('¡Partida guardada permanentemente!');
-      cargarPartidas(); // Recarga y renderiza la tabla con los datos de Supabase
+    h1 {
+      font-family: 'Trajan Pro', 'Cinzel', Georgia, serif;
+      letter-spacing: 2px;
+      color: var(--gold);
+      font-size: 22px;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 20px;
     }
-  }
-
-  // 5. Asignar eventos
-  document.addEventListener('DOMContentLoaded', () => {
-    document.addEventListener('click', (e) => {
-      if (e.target && e.target.textContent.trim().includes('LOG GAME')) {
-        guardarPartida(e);
-      }
-    });
-
-    cargarPartidas();
-  });
-</script>
-
-<style>
-  :root {
-    --bg: #101013;
-    --panel: #17171b;
-    --panel-2: #1e1e23;
-    --border: #313138;
-    --gold: #b08d45;
-    --gold-dim: #7d6531;
-    --red: #8c2a2a;
-    --text: #e6e1d3;
-    --text-dim: #9a978c;
-    --win: #4f7a3f;
-    --loss: #8c2a2a;
-    --draw: #7d6531;
-  }
-  * { box-sizing: border-box; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Georgia', 'Times New Roman', serif;
-    margin: 0;
-    padding: 24px;
-  }
-  h1 {
-    font-family: 'Trajan Pro', 'Cinzel', Georgia, serif;
-    letter-spacing: 2px;
-    color: var(--gold);
-    font-size: 22px;
-    text-transform: uppercase;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 12px;
-    margin-bottom: 20px;
-  }
-  h1 span { color: var(--text-dim); font-size: 13px; letter-spacing: 1px; display: block; margin-top: 4px; text-transform: none; }
-  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
-  @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 18px;
-  }
-  .panel h2 {
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--gold);
-    margin: 0 0 14px 0;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 8px;
-  }
-  label {
-    display: block;
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-bottom: 4px;
-    margin-top: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  select, input, button {
-    width: 100%;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 8px 10px;
-    border-radius: 3px;
-    font-family: 'Georgia', serif;
-    font-size: 14px;
-  }
-  select:focus, input:focus { outline: 1px solid var(--gold-dim); border-color: var(--gold-dim); }
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  button.submit {
-    margin-top: 18px;
-    background: var(--red);
-    border: 1px solid #a83c3c;
-    color: #f0e6d8;
-    font-weight: bold;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-size: 13px;
-    cursor: pointer;
-    padding: 10px;
-  }
-  button.submit:hover { background: #a83232; }
-  .error { color: #e08a8a; font-size: 12px; margin-top: 6px; display: none; }
-  .hint { color: var(--text-dim); font-size: 11px; margin-top: 4px; }
-  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
-  .stat-card {
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 10px 12px;
-  }
-  .stat-card .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat-card .value { font-size: 20px; color: var(--gold); margin-top: 4px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th {
-    text-align: left;
-    font-size: 11px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    letter-spacing: 0.5px;
-    border-bottom: 1px solid var(--border);
-    padding: 6px 8px;
-  }
-  td { padding: 7px 8px; border-bottom: 1px solid #232328; }
-  .bar-wrap { display: flex; align-items: center; gap: 8px; }
-  .bar-bg { flex: 1; height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
-  .bar-fill { height: 100%; background: var(--gold-dim); }
-  .badge { padding: 2px 8px; border-radius: 3px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .badge.win { background: rgba(79,122,63,0.25); color: #9fcf8a; }
-  .badge.loss { background: rgba(140,42,42,0.25); color: #e08a8a; }
-  .badge.draw { background: rgba(125,101,49,0.25); color: #d9c58a; }
-  .checklist { max-height: 180px; overflow-y: auto; border: 1px solid var(--border); border-radius: 3px; background: var(--panel-2); padding: 6px 8px; }
-  .checklist label { display: flex; align-items: center; gap: 8px; font-size: 13px; text-transform: none; letter-spacing: 0; color: var(--text); margin: 0; padding: 5px 0; border-bottom: 1px solid #232328; }
-  .checklist label:last-child { border-bottom: none; }
-  .checklist input[type=checkbox] { width: auto; margin: 0; }
-  .checklist label.disabled { color: var(--text-dim); }
-  .checklist .dp-tag { margin-left: auto; font-size: 11px; color: var(--gold); }
-  .empty { color: var(--text-dim); font-size: 13px; padding: 20px 0; text-align: center; }
-  .del-btn {
-    background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px;
-    width: auto; padding: 0 4px;
-  }
-  .del-btn:hover { color: #e08a8a; }
-  .list-panel { max-height: 260px; overflow-y: auto; margin-top: 4px; }
-</style>
+    h1 span { color: var(--text-dim); font-size: 13px; letter-spacing: 1px; display: block; margin-top: 4px; text-transform: none; }
+    .layout { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+    @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 18px;
+    }
+    .panel h2 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--gold);
+      margin: 0 0 14px 0;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+      margin-top: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    select, input, button {
+      width: 100%;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 3px;
+      font-family: 'Georgia', serif;
+      font-size: 14px;
+    }
+    select:focus, input:focus { outline: 1px solid var(--gold-dim); border-color: var(--gold-dim); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button.submit {
+      margin-top: 18px;
+      background: var(--red);
+      border: 1px solid #a83c3c;
+      color: #f0e6d8;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 10px;
+    }
+    button.submit:hover { background: #a83232; }
+    .error { color: #e08a8a; font-size: 12px; margin-top: 6px; display: none; }
+    .hint { color: var(--text-dim); font-size: 11px; margin-top: 4px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+    .stat-card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 10px 12px;
+    }
+    .stat-card .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .value { font-size: 20px; color: var(--gold); margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+      padding: 6px 8px;
+    }
+    td { padding: 7px 8px; border-bottom: 1px solid #232328; }
+    .bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .bar-bg { flex: 1; height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--gold-dim); }
+    .badge { padding: 2px 8px; border-radius: 3px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge.win { background: rgba(79,122,63,0.25); color: #9fcf8a; }
+    .badge.loss { background: rgba(140,42,42,0.25); color: #e08a8a; }
+    .badge.draw { background: rgba(125,101,49,0.25); color: #d9c58a; }
+    .checklist { max-height: 180px; overflow-y: auto; border: 1px solid var(--border); border-radius: 3px; background: var(--panel-2); padding: 6px 8px; }
+    .checklist label { display: flex; align-items: center; gap: 8px; font-size: 13px; text-transform: none; letter-spacing: 0; color: var(--text); margin: 0; padding: 5px 0; border-bottom: 1px solid #232328; }
+    .checklist label:last-child { border-bottom: none; }
+    .checklist input[type=checkbox] { width: auto; margin: 0; }
+    .checklist label.disabled { color: var(--text-dim); }
+    .checklist .dp-tag { margin-left: auto; font-size: 11px; color: var(--gold); }
+    .empty { color: var(--text-dim); font-size: 13px; padding: 20px 0; text-align: center; }
+    .del-btn {
+      background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px;
+      width: auto; padding: 0 4px;
+    }
+    .del-btn:hover { color: #e08a8a; }
+    .list-panel { max-height: 260px; overflow-y: auto; margin-top: 4px; }
+  </style>
 </head>
 <body>
+
+  <!-- AQUÍ VA TODO EL CONTENIDO HTML DE TU PÁGINA (FORMULARIOS, PANELES, TABLAS) -->
+
+
+  <!-- 1. Cargar la librería de Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- 2. Código JavaScript principal para Supabase -->
+  <script>
+    const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function cargarPartidas() {
+      const { data: partidas, error } = await supabaseClient
+        .from('Partidas')
+        .select('*');
+
+      if (error) {
+        console.error('Error al cargar datos de Supabase:', error.message);
+        return;
+      }
+
+      console.log('Partidas leídas desde Supabase:', partidas);
+      pintarTabla(partidas);
+    }
+
+    function pintarTabla(partidas) {
+      const tabla = document.querySelector('table');
+      if (!tabla) return;
+
+      let contenedor = tabla.querySelector('tbody') || tabla;
+      
+      if (!partidas || partidas.length === 0) {
+        contenedor.innerHTML = `
+          <tr>
+            <th>ARMY</th>
+            <th>DETACHMENT</th>
+            <th>DISPOSITION</th>
+            <th>OPPONENT</th>
+            <th>VP</th>
+            <th>RESULT</th>
+          </tr>
+          <tr>
+            <td colspan="6" class="empty">Log your first game on the left.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      let html = `
+        <tr>
+          <th>ARMY</th>
+          <th>DETACHMENT</th>
+          <th>DISPOSITION</th>
+          <th>OPPONENT</th>
+          <th>VP</th>
+          <th>RESULT</th>
+        </tr>
+      `;
+
+      partidas.forEach(p => {
+        let badgeClass = 'draw';
+        if (p.result === 'Victoria' || p.result === 'WIN') badgeClass = 'win';
+        if (p.result === 'Derrota' || p.result === 'LOSS') badgeClass = 'loss';
+
+        html += `
+          <tr>
+            <td>${p.army || '-'}</td>
+            <td>${p.detachment || '-'}</td>
+            <td>${p.disposition || '-'}</td>
+            <td>${p.opponent || '-'}</td>
+            <td>${p.vp_you ?? 0} - ${p.vp_opponent ?? 0}</td>
+            <td><span class="badge ${badgeClass}">${p.result || 'DRAW'}</span></td>
+          </tr>
+        `;
+      });
+
+      contenedor.innerHTML = html;
+    }
+
+    async function guardarPartida(event) {
+      if (event) event.preventDefault();
+
+      const selects = document.querySelectorAll('select');
+      const miEjercito = selects[0] ? selects[0].value : 'Desconocido';
+      const oponenteEjercito = selects[1] ? selects[1].value : 'Desconocido';
+
+      const inputsNum = document.querySelectorAll('input[type="number"]');
+      const vpTu = inputsNum.length >= 2 ? (parseInt(inputsNum[inputsNum.length - 2].value) || 0) : 0;
+      const vpOponente = inputsNum.length >= 1 ? (parseInt(inputsNum[inputsNum.length - 1].value) || 0) : 0;
+
+      let resultado = 'DRAW';
+      if (vpTu > vpOponente) resultado = 'WIN';
+      else if (vpTu < vpOponente) resultado = 'LOSS';
+
+      const nuevaPartida = {
+        army: miEjercito,
+        opponent: oponenteEjercito,
+        vp_you: vpTu,
+        vp_opponent: vpOponente,
+        result: resultado
+      };
+
+      console.log('Enviando a Supabase...', nuevaPartida);
+
+      const { data, error } = await supabaseClient
+        .from('Partidas')
+        .insert([nuevaPartida]);
+
+      if (error) {
+        alert('Error de Supabase: ' + error.message);
+        console.error(error);
+      } else {
+        alert('¡Partida guardada permanentemente en Supabase!');
+        cargarPartidas();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.addEventListener('click', (e) => {
+        if (e.target && e.target.textContent.trim().includes('LOG GAME')) {
+          guardarPartida(e);
+        }
+      });
+
+      cargarPartidas();
+    });
+  </script>
+</body>
+</html>
 
 <h1>Campaign Log<span>Adeptus Analytica — log your games and track your win rate</span></h1>
 
