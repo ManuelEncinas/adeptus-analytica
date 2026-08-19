@@ -138,54 +138,37 @@
   <!-- AQUÍ VA TODO EL CONTENIDO HTML DE TU PÁGINA (FORMULARIOS, PANELES, TABLAS) -->
 
 
-  <!-- 1. Cargar la librería de Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+ <!-- 1. Librería de Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- 2. Código JavaScript principal para Supabase -->
-  <script>
-    const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
+<!-- 2. Lógica aislada e inmune a scripts nativos -->
+<script>
+  const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
 
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    async function cargarPartidas() {
-      const { data: partidas, error } = await supabaseClient
-        .from('Partidas')
-        .select('*');
+  // Cargar partidas desde Supabase
+  async function cargarPartidas() {
+    const { data: partidas, error } = await supabaseClient
+      .from('Partidas')
+      .select('*');
 
-      if (error) {
-        console.error('Error al cargar datos de Supabase:', error.message);
-        return;
-      }
-
-      console.log('Partidas leídas desde Supabase:', partidas);
-      pintarTabla(partidas);
+    if (error) {
+      console.error('Error Supabase:', error.message);
+      return;
     }
 
-    function pintarTabla(partidas) {
-      const tabla = document.querySelector('table');
-      if (!tabla) return;
+    pintarTabla(partidas);
+  }
 
-      let contenedor = tabla.querySelector('tbody') || tabla;
-      
-      if (!partidas || partidas.length === 0) {
-        contenedor.innerHTML = `
-          <tr>
-            <th>ARMY</th>
-            <th>DETACHMENT</th>
-            <th>DISPOSITION</th>
-            <th>OPPONENT</th>
-            <th>VP</th>
-            <th>RESULT</th>
-          </tr>
-          <tr>
-            <td colspan="6" class="empty">Log your first game on the left.</td>
-          </tr>
-        `;
-        return;
-      }
+  // Dibujar tabla forzando la sobreescritura
+  function pintarTabla(partidas) {
+    const tabla = document.querySelector('table');
+    if (!tabla) return;
 
-      let html = `
+    let html = `
+      <thead>
         <tr>
           <th>ARMY</th>
           <th>DETACHMENT</th>
@@ -194,8 +177,13 @@
           <th>VP</th>
           <th>RESULT</th>
         </tr>
-      `;
+      </thead>
+      <tbody>
+    `;
 
+    if (!partidas || partidas.length === 0) {
+      html += `<tr><td colspan="6" class="empty">Log your first game on the left.</td></tr>`;
+    } else {
       partidas.forEach(p => {
         let badgeClass = 'draw';
         if (p.result === 'Victoria' || p.result === 'WIN') badgeClass = 'win';
@@ -212,58 +200,63 @@
           </tr>
         `;
       });
-
-      contenedor.innerHTML = html;
     }
 
-    async function guardarPartida(event) {
-      if (event) event.preventDefault();
+    html += `</tbody>`;
+    tabla.innerHTML = html;
+  }
 
-      const selects = document.querySelectorAll('select');
-      const miEjercito = selects[0] ? selects[0].value : 'Desconocido';
-      const oponenteEjercito = selects[1] ? selects[1].value : 'Desconocido';
-
-      const inputsNum = document.querySelectorAll('input[type="number"]');
-      const vpTu = inputsNum.length >= 2 ? (parseInt(inputsNum[inputsNum.length - 2].value) || 0) : 0;
-      const vpOponente = inputsNum.length >= 1 ? (parseInt(inputsNum[inputsNum.length - 1].value) || 0) : 0;
-
-      let resultado = 'DRAW';
-      if (vpTu > vpOponente) resultado = 'WIN';
-      else if (vpTu < vpOponente) resultado = 'LOSS';
-
-      const nuevaPartida = {
-        army: miEjercito,
-        opponent: oponenteEjercito,
-        vp_you: vpTu,
-        vp_opponent: vpOponente,
-        result: resultado
-      };
-
-      console.log('Enviando a Supabase...', nuevaPartida);
-
-      const { data, error } = await supabaseClient
-        .from('Partidas')
-        .insert([nuevaPartida]);
-
-      if (error) {
-        alert('Error de Supabase: ' + error.message);
-        console.error(error);
-      } else {
-        alert('¡Partida guardada permanentemente en Supabase!');
-        cargarPartidas();
-      }
+  // Guardar partida e interrumpiendo otros scripts
+  async function guardarPartida(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation(); // Detiene los scripts nativos de la plantilla
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      document.addEventListener('click', (e) => {
-        if (e.target && e.target.textContent.trim().includes('LOG GAME')) {
-          guardarPartida(e);
-        }
-      });
+    const selects = document.querySelectorAll('select');
+    const miEjercito = selects[0] ? selects[0].value : 'Desconocido';
+    const oponenteEjercito = selects[1] ? selects[1].value : 'Desconocido';
 
+    const inputsNum = document.querySelectorAll('input[type="number"]');
+    const vpTu = inputsNum.length >= 2 ? (parseInt(inputsNum[inputsNum.length - 2].value) || 0) : 0;
+    const vpOponente = inputsNum.length >= 1 ? (parseInt(inputsNum[inputsNum.length - 1].value) || 0) : 0;
+
+    let resultado = 'DRAW';
+    if (vpTu > vpOponente) resultado = 'WIN';
+    else if (vpTu < vpOponente) resultado = 'LOSS';
+
+    const nuevaPartida = {
+      army: miEjercito,
+      opponent: oponenteEjercito,
+      vp_you: vpTu,
+      vp_opponent: vpOponente,
+      result: resultado
+    };
+
+    const { data, error } = await supabaseClient
+      .from('Partidas')
+      .insert([nuevaPartida]);
+
+    if (error) {
+      alert('Error en Supabase: ' + error.message);
+    } else {
+      alert('¡Partida guardada con éxito!');
       cargarPartidas();
-    });
-  </script>
+    }
+  }
+
+  // Interceptar el botón en fase de captura (antes que los scripts originales)
+  window.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.textContent.trim().includes('LOG GAME')) {
+        guardarPartida(e);
+      }
+    }, true); // El 'true' activa la fase de captura
+
+    cargarPartidas();
+  });
+</script>
 </body>
 </html>
 
