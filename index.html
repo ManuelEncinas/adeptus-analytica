@@ -19,7 +19,7 @@
       --draw: #7d6531;
     }
     * { box-sizing: border-box; }
-    
+
     body {
       background: var(--bg);
       color: var(--text);
@@ -64,6 +64,13 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+    label .sub {
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: normal;
+      color: var(--text-dim);
+      font-size: 11px;
+    }
     select, input, button {
       width: 100%;
       background: var(--panel-2);
@@ -75,7 +82,16 @@
       font-size: 14px;
     }
     select:focus, input:focus { outline: 1px solid var(--gold-dim); border-color: var(--gold-dim); }
+    input[readonly] { color: var(--gold); cursor: not-allowed; opacity: 0.9; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row-mission { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: stretch; }
+    .btn-dice {
+      width: auto;
+      padding: 8px 12px;
+      cursor: pointer;
+      background: var(--panel-2);
+    }
+    .btn-dice:hover { border-color: var(--gold-dim); }
     button.submit {
       margin-top: 18px;
       background: var(--red);
@@ -89,6 +105,17 @@
       padding: 10px;
     }
     button.submit:hover { background: #a83232; }
+    button.secondary-btn {
+      width: auto;
+      margin-top: 8px;
+      padding: 7px 14px;
+      cursor: pointer;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+    button.secondary-btn:hover { border-color: var(--gold-dim); }
     .error { color: #e08a8a; font-size: 12px; margin-top: 6px; display: none; }
     .hint { color: var(--text-dim); font-size: 11px; margin-top: 4px; }
     .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
@@ -109,8 +136,26 @@
       letter-spacing: 0.5px;
       border-bottom: 1px solid var(--border);
       padding: 6px 8px;
+      white-space: nowrap;
     }
     td { padding: 7px 8px; border-bottom: 1px solid #232328; }
+    .table-scroll { overflow-x: auto; }
+    .table-scroll table { min-width: 720px; }
+    .mission-table { margin-top: 6px; }
+    .mission-table td { padding: 6px 4px; }
+    .mission-table select, .mission-table input { font-size: 13px; padding: 6px 8px; }
+    .total-vp-box {
+      margin-top: 10px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .total-vp-box strong { color: var(--gold); font-size: 15px; text-transform: none; letter-spacing: 0; }
     .bar-wrap { display: flex; align-items: center; gap: 8px; }
     .bar-bg { flex: 1; height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
     .bar-fill { height: 100%; background: var(--gold-dim); }
@@ -131,253 +176,10 @@
     }
     .del-btn:hover { color: #e08a8a; }
     .list-panel { max-height: 260px; overflow-y: auto; margin-top: 4px; }
+    .secondaries-cell { font-size: 12px; color: var(--text-dim); }
   </style>
 </head>
 <body>
-<!-- SDK de Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script>
-  const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
-
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  // 1. Cargar y corregir las tablas desde Supabase
-  async function cargarPartidas() {
-    const { data: partidas, error } = await supabaseClient
-      .from('Partidas')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error en Supabase:', error.message);
-      return;
-    }
-
-    renderTablas(partidas);
-    actualizarMetricasSuperiores(partidas);
-  }
-
-  // 2. Pintar tanto GAME HISTORY como WIN RATE BY ARMY con los puntos reales
-  function renderTablas(partidas) {
-    if (!partidas || partidas.length === 0) return;
-
-    // A) Tabla GAME HISTORY (Abajo)
-    const tablaBottom = document.querySelectorAll('table')[1] || document.querySelector('#gamesTable') || document.querySelector('table');
-    const tbodyBottom = tablaBottom ? tablaBottom.querySelector('tbody') : null;
-
-    if (tbodyBottom) {
-      let htmlBottom = '';
-      partidas.forEach(p => {
-        let badgeClass = 'draw';
-        let resText = p.result || 'DRAW';
-        if (resText === 'WIN') badgeClass = 'win';
-        if (resText === 'LOSS') badgeClass = 'loss';
-
-        htmlBottom += `
-          <tr>
-            <td>${p.army || '-'}</td>
-            <td>${p.detachment || '-'} (${p.dpUsado || 3} DP)</td>
-            <td>${p.disposicion || '-'}</td>
-            <td>${p.opponent || '-'}</td>
-            <td><strong>${p.vp_you ?? 0}</strong> - <strong>${p.vp_opponent ?? 0}</strong></td>
-            <td><span class="badge ${badgeClass}">${resText}</span></td>
-            <td></td>
-          </tr>
-        `;
-      });
-      tbodyBottom.innerHTML = htmlBottom;
-    }
-
-    // B) Tabla WIN RATE BY ARMY (Arriba) - Corregir los 0 - 0 y los DRAW
-    const tablaTop = document.querySelectorAll('table')[0];
-    const tbodyTop = tablaTop ? tablaTop.querySelector('tbody') : null;
-
-    if (tbodyTop && tbodyTop !== tbodyBottom) {
-      let htmlTop = '';
-      partidas.forEach(p => {
-        let badgeClass = 'draw';
-        let resText = p.result || 'DRAW';
-
-        // Recalcular resultado si los puntos existen
-        const vpYou = p.vp_you ?? 0;
-        const vpOpp = p.vp_opponent ?? 0;
-
-        if (vpYou > vpOpp) {
-          badgeClass = 'win';
-          resText = 'WIN';
-        } else if (vpYou < vpOpp) {
-          badgeClass = 'loss';
-          resText = 'LOSS';
-        }
-
-        htmlTop += `
-          <tr>
-            <td>${p.army || '-'}</td>
-            <td>${p.detachment || '-'} (${p.dpUsado || 3} DP) · ${p.disposicion || '-'}</td>
-            <td>${p.disposicion || '-'}</td>
-            <td>${p.opponent || '-'}</td>
-            <td><strong>${vpYou}</strong><br><small style="opacity:0.6">${vpOpp}</small></td>
-            <td><span class="badge ${badgeClass}">${resText}</span></td>
-          </tr>
-        `;
-      });
-      tbodyTop.innerHTML = htmlTop;
-    }
-  }
-
-  // 3. Actualizar OVERALL WIN RATE (GAMES, WIN RATE %, W/L/D)
-  function actualizarMetricasSuperiores(partidas) {
-    if (!partidas) return;
-
-    const total = partidas.length;
-    let wins = 0, losses = 0, draws = 0;
-
-    partidas.forEach(p => {
-      const vy = p.vp_you ?? 0;
-      const vo = p.vp_opponent ?? 0;
-      if (vy > vo || p.result === 'WIN') wins++;
-      else if (vy < vo || p.result === 'LOSS') losses++;
-      else draws++;
-    });
-
-    const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
-
-    // Buscar los contenedores de las métricas
-    const cards = document.querySelectorAll('div, span');
-    cards.forEach(c => {
-      const txt = c.textContent.trim().toUpperCase();
-      if (txt === 'GAMES') {
-        const val = c.parentElement?.querySelector('div:nth-child(2), span, h2, p');
-        if (val) val.textContent = total;
-      }
-      if (txt === 'WIN RATE') {
-        const val = c.parentElement?.querySelector('div:nth-child(2), span, h2, p');
-        if (val) val.textContent = `${winRate}%`;
-      }
-      if (txt === 'W / L / D' || txt === 'W/L/D') {
-        const val = c.parentElement?.querySelector('div:nth-child(2), span, h2, p');
-        if (val) val.textContent = `${wins}/${losses}/${draws}`;
-      }
-    });
-  }
-
-  // 4. Capturar puntos ANTES de que la plantilla borre los campos
-  async function guardarPartida(e) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-    }
-
-    // Ocultar mensaje rojo de error
-    document.querySelectorAll('*').forEach(el => {
-      if (el.children.length === 0 && el.textContent.includes('Could not save')) {
-        el.style.display = 'none';
-      }
-    });
-
-    // LEER PUNTOS DIRECTAMENTE DE LOS INPUTS DE LA PANTALLA
-    const inputsNum = Array.from(document.querySelectorAll('input[type="number"]'));
-    const allInputs = Array.from(document.querySelectorAll('input'));
-
-    let vpYouVal = 0;
-    let vpOppVal = 0;
-
-    // Leer campos de la pantalla por su etiqueta contenedora
-    allInputs.forEach(input => {
-      const parentTxt = input.parentElement ? input.parentElement.textContent.toUpperCase() : '';
-      if (parentTxt.includes('YOU')) {
-        const val = parseInt(input.value);
-        if (!isNaN(val)) vpYouVal = val;
-      }
-      if (parentTxt.includes('OPPONENT')) {
-        const val = parseInt(input.value);
-        if (!isNaN(val)) vpOppVal = val;
-      }
-    });
-
-    // Si los inputs numéricos generales tienen valores, usarlos de respaldo
-    if (vpYouVal === 0 && vpOppVal === 0 && inputsNum.length >= 3) {
-      vpYouVal = parseInt(inputsNum[1].value) || 0;
-      vpOppVal = parseInt(inputsNum[2].value) || 0;
-    }
-
-    const selects = Array.from(document.querySelectorAll('select'));
-    const armyVal = selects[0]?.value || 'Chaos Knights';
-    const dispVal = selects[1]?.value || 'Purge the Foe';
-    const oppVal = selects[2]?.value || 'Adeptus Astartes';
-    const oppDispVal = selects[3]?.value || 'Disruption';
-
-    const ptsInput = document.querySelector('input[placeholder*="2000"]') || inputsNum[0];
-    const ptsVal = ptsInput ? (parseInt(ptsInput.value) || 2000) : 2000;
-
-    const missionInput = document.querySelector('input[placeholder*="mission" i]');
-    let missionVal = missionInput ? missionInput.value.trim() : '';
-    if (!missionVal) missionVal = dispVal;
-
-    // Calcular resultado
-    let resultVal = 'DRAW';
-    if (vpYouVal > vpOppVal) resultVal = 'WIN';
-    else if (vpYouVal < vpOppVal) resultVal = 'LOSS';
-
-    const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'));
-    const myDets = [];
-    const oppDets = [];
-
-    checkboxes.forEach(cb => {
-      const txt = cb.parentElement ? cb.parentElement.textContent.trim() : cb.value;
-      if (cb.closest('div')?.previousElementSibling?.textContent.includes("OPPONENT")) {
-        oppDets.push(txt);
-      } else {
-        myDets.push(txt);
-      }
-    });
-
-    const nuevaPartida = {
-      army: armyVal,
-      opponent: oppVal,
-      detachment: myDets.join(', ') || 'Infernal Lance',
-      rivalDetachment: oppDets.join(', ') || 'None',
-      dpUsado: myDets.length || 3,
-      puntos: ptsVal,
-      disposicion: dispVal,
-      rivalDisposicion: oppDispVal,
-      mision: missionVal,
-      vp_you: vpYouVal,
-      vp_opponent: vpOppVal,
-      result: resultVal
-    };
-
-    const { error } = await supabaseClient
-      .from('Partidas')
-      .insert([nuevaPartida]);
-
-    if (error) {
-      alert('Error en Supabase: ' + error.message);
-    } else {
-      await cargarPartidas();
-    }
-  }
-
-  // 5. Vincular evento de clic e inicializar
-  document.addEventListener('DOMContentLoaded', () => {
-    document.addEventListener('click', (e) => {
-      if (e.target && e.target.textContent.trim().includes('LOG GAME')) {
-        guardarPartida(e);
-      }
-    }, true);
-
-    cargarPartidas();
-  });
-
-  window.addEventListener('load', () => {
-    setTimeout(cargarPartidas, 400);
-  });
-</script>
-</body>
-</html>
 
 <h1>Campaign Log<span>Adeptus Analytica — log your games and track your win rate</span></h1>
 
@@ -449,20 +251,43 @@
     <div id="rival-detachment-list" class="checklist"></div>
     <div class="hint" id="rival-dp-used-hint">0 / 2 DP used</div>
 
-    <label for="mision">Mission</label>
-    <input id="mision" list="mision-list" placeholder="Select or type a mission">
-    <datalist id="mision-list"></datalist>
-    <div class="hint">Missions update based on your force disposition (11th ed.)</div>
+    <label for="mision">Primary mission <span class="sub">(assigned by Force disposition)</span></label>
+    <div class="row-mission">
+      <input id="mision" readonly>
+      <button type="button" class="btn-dice" id="btn-redraw-mision" title="Draw a different Primary Mission for this disposition">🎲</button>
+    </div>
+    <div class="hint">Your Primary Mission is drawn automatically from the Force Disposition matchup (Chapter Approved 2026-27) and can't be typed in — use the dice to redraw within your disposition.</div>
+
+    <label>Secondary missions <span class="sub">(Chapter Approved 2026-27: Mission Deck)</span></label>
+    <div class="hint">Pick 2 manually, or draw 2 at random from the deck.</div>
+    <table class="mission-table">
+      <thead><tr><th>Mission</th><th style="width:70px;">VP</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><select id="sec-mision-1"></select></td>
+          <td><input id="sec-vp-1" type="number" min="0" max="15" step="1" value="0"></td>
+        </tr>
+        <tr>
+          <td><select id="sec-mision-2"></select></td>
+          <td><input id="sec-vp-2" type="number" min="0" max="15" step="1" value="0"></td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="secondary-btn" id="btn-randomize-sec">🎲 Draw 2 at random</button>
 
     <div class="row2">
       <div>
-        <label for="pv-propios">Victory points (you)</label>
+        <label for="pv-propios">Primary VP (you)</label>
         <input id="pv-propios" type="number" min="0" step="1" placeholder="85">
       </div>
       <div>
-        <label for="pv-rival">Victory points (opponent)</label>
+        <label for="pv-rival">Primary VP (opponent)</label>
         <input id="pv-rival" type="number" min="0" step="1" placeholder="60">
       </div>
+    </div>
+
+    <div class="total-vp-box">
+      Total VP (Primary + Secondaries) &nbsp; <strong id="total-vp-preview">0</strong>
     </div>
 
     <div class="error" id="form-error"></div>
@@ -487,10 +312,10 @@
     <div class="empty" id="empty-resumen" style="display:none;">No games logged yet.</div>
 
     <h2 style="margin-top:18px;">Game history</h2>
-    <div class="list-panel">
+    <div class="list-panel table-scroll">
       <table>
         <thead>
-          <tr><th>Army</th><th>Detachment</th><th>Disposition</th><th>Opponent</th><th>VP</th><th>Result</th><th></th></tr>
+          <tr><th>Army</th><th>Detachment</th><th>Mission</th><th>Opponent</th><th>Primary VP</th><th>Secondaries</th><th>Total VP</th><th>Result</th><th></th></tr>
         </thead>
         <tbody id="tbody-historial"></tbody>
       </table>
@@ -588,10 +413,15 @@ function actualizarDisposicionDisponible(contenedorId) {
     select.appendChild(opt);
   });
 
-  if (opciones.includes(valorPrevio)) select.value = valorPrevio;
+  const seSchangedValue = opciones.includes(valorPrevio);
+  if (seSchangedValue) select.value = valorPrevio;
 
   if (selectId === 'disposicion') {
-    actualizarMisiones();
+    // Only draw a fresh Primary Mission if the disposition actually changed
+    // (otherwise redraws would fire every time an unrelated checkbox toggles).
+    if (!seSchangedValue || !$('mision').value) {
+      asignarMision();
+    }
     $('disposicion-hint').textContent = disposicionesDisponibles.length > 0
       ? `Available from your selected detachments: ${disposicionesDisponibles.join(', ')}`
       : 'Choose detachments to see available dispositions.';
@@ -622,6 +452,8 @@ function actualizarChecklist(selectEjercito, contenedorId, hintId) {
   });
 }
 
+// Primary Mission cards, grouped by Force Disposition matchup (Chapter Approved 2026-27: Mission Deck).
+// The Primary Mission is drawn automatically for whichever disposition is in play - it is never typed in by hand.
 const MISSIONS_BY_DISPOSITION = {
   'Take and Hold': ['Inescapable Dominion', 'Vital Ground', 'Scattered Positions', 'Terraform', 'Unbroken Wall'],
   'Purge the Foe': ["Destroyer's Wrath", 'Storm Assault', 'Purge the Foe', 'Advanced Positions', 'Bring It Down'],
@@ -630,19 +462,66 @@ const MISSIONS_BY_DISPOSITION = {
   'Disruption': ['Locate and Deny', 'Outmanoeuvre', 'Behind Enemy Lines', 'Sever the Head', 'Sabotage'],
 };
 
-function actualizarMisiones() {
+// Secondary Mission cards from the Chapter Approved 2026-27: Mission Deck.
+const SECONDARY_MISSIONS = [
+  'A Grievous Blow', 'A Tempting Target', 'Assassination', 'Beacon', 'Behind Enemy Lines',
+  'Bring it Down', 'Burden of Trust', 'Centre Ground', 'Cleanse', 'Defend Stronghold',
+  'Display of Might', 'Engage on All Fronts', 'Forward Position', 'No Prisoners', 'Outflank',
+  'Overwhelming Force', 'Plunder', "Secure No Man's Land",
+];
+
+function asignarMision() {
   const disposicion = $('disposicion').value;
   const lista = MISSIONS_BY_DISPOSITION[disposicion] || [];
-  const datalist = $('mision-list');
-  datalist.innerHTML = '';
-  lista.forEach(m => {
-    const opt = document.createElement('option');
-    opt.value = m;
-    datalist.appendChild(opt);
-  });
+  if (lista.length === 0) {
+    $('mision').value = '-';
+    return;
+  }
+  const mision = lista[Math.floor(Math.random() * lista.length)];
+  $('mision').value = mision;
 }
 
-$('disposicion').addEventListener('change', actualizarMisiones);
+$('disposicion').addEventListener('change', asignarMision);
+$('btn-redraw-mision').addEventListener('click', asignarMision);
+
+function poblarSecundarias() {
+  const sel1 = $('sec-mision-1');
+  const sel2 = $('sec-mision-2');
+  [sel1, sel2].forEach(sel => {
+    sel.innerHTML = '';
+    SECONDARY_MISSIONS.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      sel.appendChild(opt);
+    });
+  });
+  sel1.selectedIndex = 0;
+  sel2.selectedIndex = Math.min(1, SECONDARY_MISSIONS.length - 1);
+}
+
+function sortearSecundarias() {
+  const indices = [...SECONDARY_MISSIONS.keys()];
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  $('sec-mision-1').selectedIndex = indices[0];
+  $('sec-mision-2').selectedIndex = indices[1];
+}
+
+$('btn-randomize-sec').addEventListener('click', sortearSecundarias);
+
+function actualizarTotalVP() {
+  const primaria = Number($('pv-propios').value) || 0;
+  const sec1 = Number($('sec-vp-1').value) || 0;
+  const sec2 = Number($('sec-vp-2').value) || 0;
+  $('total-vp-preview').textContent = primaria + sec1 + sec2;
+}
+
+['pv-propios', 'sec-vp-1', 'sec-vp-2'].forEach(id => {
+  $(id).addEventListener('input', actualizarTotalVP);
+});
 
 $('ejercito').addEventListener('change', () => {
   $('ejercito-custom').style.display = $('ejercito').value === '__custom' ? 'block' : 'none';
@@ -703,11 +582,17 @@ $('btn-guardar').addEventListener('click', async () => {
   const mision = $('mision').value.trim();
   const pvPropios = $('pv-propios').value;
   const pvRival = $('pv-rival').value;
+  const secMision1 = $('sec-mision-1').value;
+  const secMision2 = $('sec-mision-2').value;
+  const secVP1 = $('sec-vp-1').value;
+  const secVP2 = $('sec-vp-2').value;
 
   if (!ejercito) { mostrarError('Enter your army name.'); return; }
   if (!rival) { mostrarError("Enter your opponent's army."); return; }
   if (pvPropios === '' || pvRival === '') { mostrarError('Enter victory points for both sides.'); return; }
   if (Number(pvPropios) < 0 || Number(pvRival) < 0) { mostrarError('Victory points cannot be negative.'); return; }
+  if (secMision1 === secMision2) { mostrarError('Pick two different secondary missions.'); return; }
+  if (Number(secVP1) < 0 || Number(secVP2) < 0) { mostrarError('Secondary VP cannot be negative.'); return; }
 
   const budget = calcularBudgetDP();
   const dpUsado = totalDPSeleccionado($('detachment-list'));
@@ -720,6 +605,10 @@ $('btn-guardar').addEventListener('click', async () => {
 
   const pvP = Number(pvPropios);
   const pvR = Number(pvRival);
+  const sV1 = Number(secVP1) || 0;
+  const sV2 = Number(secVP2) || 0;
+  const totalVP = pvP + sV1 + sV2;
+
   let resultado = 'Draw';
   if (pvP > pvR) resultado = 'Win';
   else if (pvP < pvR) resultado = 'Loss';
@@ -732,6 +621,9 @@ $('btn-guardar').addEventListener('click', async () => {
     puntos: puntos ? Number(puntos) : null,
     disposicion, rivalDisposicion,
     mision: mision || '-',
+    secMision1, secVP1: sV1,
+    secMision2, secVP2: sV2,
+    totalVP,
     pvPropios: pvP, pvRival: pvR,
     resultado,
   });
@@ -743,9 +635,12 @@ $('btn-guardar').addEventListener('click', async () => {
   $('rival-custom').value = '';
   poblarDetachments($('rival'), 'rival-detachment-list', 'rival-dp-used-hint');
   $('puntos').value = '';
-  $('mision').value = '';
   $('pv-propios').value = '';
   $('pv-rival').value = '';
+  $('sec-vp-1').value = '0';
+  $('sec-vp-2').value = '0';
+  sortearSecundarias();
+  actualizarTotalVP();
 
   render();
 });
@@ -805,13 +700,21 @@ function render() {
 
   [...batallas].reverse().forEach(b => {
     const cls = b.resultado === 'Win' ? 'win' : (b.resultado === 'Loss' ? 'loss' : 'draw');
+    const secVP1 = b.secVP1 || 0;
+    const secVP2 = b.secVP2 || 0;
+    const totalVP = b.totalVP ?? (b.pvPropios + secVP1 + secVP2);
+    const secondariesTxt = (b.secMision1 || b.secMision2)
+      ? `${b.secMision1 || '-'} (+${secVP1}), ${b.secMision2 || '-'} (+${secVP2})`
+      : '-';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${b.ejercito}</td>
       <td>${b.detachment || '-'}${b.dpUsado ? ` (${b.dpUsado} DP)` : ''}</td>
-      <td>${b.disposicion || '-'}</td>
+      <td>${b.mision || '-'}</td>
       <td>${b.rival}</td>
       <td>${b.pvPropios} - ${b.pvRival}</td>
+      <td class="secondaries-cell">${secondariesTxt}</td>
+      <td><strong>${totalVP}</strong></td>
       <td><span class="badge ${cls}">${b.resultado}</span></td>
       <td><button class="del-btn" data-id="${b.id}" aria-label="Delete game">&times;</button></td>`;
     tbodyHist.appendChild(tr);
@@ -822,7 +725,9 @@ function render() {
   });
 }
 
-actualizarMisiones();
+poblarSecundarias();
+sortearSecundarias();
+actualizarTotalVP();
 poblarDetachments($('ejercito'), 'detachment-list', 'dp-used-hint');
 poblarDetachments($('rival'), 'rival-detachment-list', 'rival-dp-used-hint');
 $('dp-budget-hint').textContent = `Detachment Points budget: ${calcularBudgetDP()} DP (games at or below 1000 pts)`;
