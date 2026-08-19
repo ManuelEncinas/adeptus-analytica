@@ -135,34 +135,31 @@
 </head>
 <body>
 
-  <!-- AQUÍ VA TODO EL CONTENIDO HTML DE TU PÁGINA (FORMULARIOS, PANELES, TABLAS) -->
-
-
  <!-- 1. Librería de Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- 2. Lógica aislada e inmune a scripts nativos -->
+<!-- 2. Código de guardado forzado -->
 <script>
   const SUPABASE_URL = 'https://lefxljtxyhneldcpcvwp.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZnhsanR4eWhuZWxkY3BjdndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDg5MTIsImV4cCI6MjEwMjY4NDkxMn0.UqXWJNZlj2csZXtOHGjE4ZsfDIo8mYKQaDeFMyQ5MG0';
 
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Cargar partidas desde Supabase
+  // A) Cargar datos de Supabase y pintar en la tabla
   async function cargarPartidas() {
     const { data: partidas, error } = await supabaseClient
       .from('Partidas')
       .select('*');
 
     if (error) {
-      console.error('Error Supabase:', error.message);
+      console.error('Error al cargar datos:', error.message);
       return;
     }
 
     pintarTabla(partidas);
   }
 
-  // Dibujar tabla forzando la sobreescritura
+  // B) Renderizar filas
   function pintarTabla(partidas) {
     const tabla = document.querySelector('table');
     if (!tabla) return;
@@ -186,8 +183,8 @@
     } else {
       partidas.forEach(p => {
         let badgeClass = 'draw';
-        if (p.result === 'Victoria' || p.result === 'WIN') badgeClass = 'win';
-        if (p.result === 'Derrota' || p.result === 'LOSS') badgeClass = 'loss';
+        if (p.result === 'WIN' || p.result === 'Victoria') badgeClass = 'win';
+        if (p.result === 'LOSS' || p.result === 'Derrota') badgeClass = 'loss';
 
         html += `
           <tr>
@@ -206,16 +203,20 @@
     tabla.innerHTML = html;
   }
 
-  // Guardar partida e interrumpiendo otros scripts
+  // C) Guardar directo a Supabase ignorando los errores nativos del HTML
   async function guardarPartida(event) {
+    // Anulamos la validación por defecto del navegador/plantilla
     if (event) {
       event.preventDefault();
       event.stopPropagation();
-      event.stopImmediatePropagation(); // Detiene los scripts nativos de la plantilla
+      event.stopImmediatePropagation();
     }
 
+    // Ocultar cualquier mensaje de error visible previo
+    document.querySelectorAll('.error').forEach(el => el.style.display = 'none');
+
     const selects = document.querySelectorAll('select');
-    const miEjercito = selects[0] ? selects[0].value : 'Desconocido';
+    const miEjercito = selects[0] ? selects[0].value : 'Adeptus Astartes';
     const oponenteEjercito = selects[1] ? selects[1].value : 'Desconocido';
 
     const inputsNum = document.querySelectorAll('input[type="number"]');
@@ -234,25 +235,28 @@
       result: resultado
     };
 
+    console.log('Enviando datos a Supabase:', nuevaPartida);
+
     const { data, error } = await supabaseClient
       .from('Partidas')
       .insert([nuevaPartida]);
 
     if (error) {
-      alert('Error en Supabase: ' + error.message);
+      alert('Error en la base de datos Supabase: ' + error.message);
+      console.error(error);
     } else {
-      alert('¡Partida guardada con éxito!');
+      alert('¡Partida guardada con éxito en Supabase!');
       cargarPartidas();
     }
   }
 
-  // Interceptar el botón en fase de captura (antes que los scripts originales)
+  // D) Interceptar el clic en la fase inicial de captura (override)
   window.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (e) => {
       if (e.target && e.target.textContent.trim().includes('LOG GAME')) {
         guardarPartida(e);
       }
-    }, true); // El 'true' activa la fase de captura
+    }, true);
 
     cargarPartidas();
   });
