@@ -16,24 +16,9 @@
 
   // A) Cargar datos de la tabla 'Partidas'
   async function cargarPartidas() {
-  const { data: partidas, error } = await supabaseClient
-    .from('Partidas')
-    .select('*'); // Se elimina .order('created_at', ...)
-
-  if (error) {
-    console.error('Error al cargar datos:', error.message);
-    return;
-  }
-
-  console.log('Partidas cargadas:', partidas);
-}
-
-  // A) Cargar datos de la tabla 'Partidas'
-  async function cargarPartidas() {
     const { data: partidas, error } = await supabaseClient
       .from('Partidas')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .select('*');
 
     if (error) {
       console.error('Error al cargar datos:', error.message);
@@ -47,13 +32,16 @@
   async function guardarPartida(event) {
     if (event) event.preventDefault();
 
-    // NOTA: Reemplaza los id ('id_input_army', etc.) por los id reales de tus inputs en el HTML
+    // Extraemos los valores de los elementos de tu página
+    const armySelect = document.querySelector('select');
+    const vpInputs = document.querySelectorAll('input[type="number"]');
+
     const nuevaPartida = {
-      army: document.getElementById('id_input_army')?.value,
-      opponent: document.getElementById('id_input_opponent')?.value,
-      vp_you: document.getElementById('id_input_vp_you')?.value,
-      vp_opponent: document.getElementById('id_input_vp_opponent')?.value,
-      result: document.getElementById('id_input_result')?.value
+      army: armySelect ? armySelect.value : 'Adeptus Astartes',
+      opponent: 'Enemigo',
+      vp_you: vpInputs[1] ? parseInt(vpInputs[1].value) : 85,
+      vp_opponent: vpInputs[2] ? parseInt(vpInputs[2].value) : 60,
+      result: 'Victoria'
     };
 
     const { data, error } = await supabaseClient
@@ -79,14 +67,14 @@
     )
     .subscribe();
 
-  // D) Asignar el botón o formulario para guardar
-  // NOTA: Reemplaza 'id_de_tu_formulario' por el id de tu <form> o asigna la función al evento click del botón LOG GAME
-  const formulario = document.getElementById('id_de_tu_formulario');
-  if (formulario) {
-    formulario.addEventListener('submit', guardarPartida);
-  }
+  // D) Vincular el evento al botón [LOG GAME]
+  document.querySelectorAll('button').forEach(boton => {
+    if (boton.textContent.includes('LOG GAME')) {
+      boton.addEventListener('click', guardarPartida);
+    }
+  });
 
-  // Carga inicial
+  // Carga inicial al abrir la página
   cargarPartidas();
 </script>
 <style>
