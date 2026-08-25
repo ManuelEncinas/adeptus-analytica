@@ -78,6 +78,10 @@
   .badge.win { background: rgba(79,122,63,0.25); color: #9fcf8a; }
   .badge.loss { background: rgba(140,42,42,0.25); color: #e08a8a; }
   .badge.draw { background: rgba(125,101,49,0.25); color: #d9c58a; }
+  .vp-own { color: #9fcf8a; font-weight: bold; }
+  .vp-opp { color: #e08a8a; font-weight: bold; }
+  .army-own { border-left: 3px solid #4f7a3f; padding-left: 8px !important; }
+  .army-opp { border-left: 3px solid var(--red); padding-left: 8px !important; }
   .empty { color: var(--text-dim); font-size: 13px; padding: 20px 0; text-align: center; }
   .del-btn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px; width: auto; padding: 0 4px; }
   .del-btn:hover { color: #e08a8a; }
@@ -133,11 +137,11 @@
 
     <div class="row2">
       <div>
-        <label for="vp-propio">Your VP</label>
+        <label for="vp-propio" style="color:#9fcf8a;">Your VP</label>
         <input id="vp-propio" type="number" min="0" step="1" placeholder="0">
       </div>
       <div>
-        <label for="vp-rival">Opponent VP</label>
+        <label for="vp-rival" style="color:#e08a8a;">Opponent VP</label>
         <input id="vp-rival" type="number" min="0" step="1" placeholder="0">
       </div>
     </div>
@@ -168,7 +172,7 @@
     <h2 style="margin-top:18px;">Game history</h2>
     <div class="table-scroll list-panel">
       <table>
-        <thead><tr><th>Date</th><th>Pts</th><th>Your army</th><th>VP</th><th>Opponent</th><th>VP</th><th>Result</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Pts</th><th style="color:#9fcf8a;">Your army</th><th style="color:#9fcf8a;">VP</th><th style="color:#e08a8a;">Opponent</th><th style="color:#e08a8a;">VP</th><th>Result</th><th></th></tr></thead>
         <tbody id="tbody-historial"></tbody>
       </table>
       <div class="empty" id="empty-historial" style="display:none;">No games logged yet.</div>
@@ -346,10 +350,10 @@ function render() {
     tr.innerHTML = `
       <td>${fecha}</td>
       <td>${p.points ?? '-'}</td>
-      <td>${p.army}</td>
-      <td>${p.vp ?? '-'}</td>
-      <td>${p.opponent}</td>
-      <td>${p.vp_opponent ?? '-'}</td>
+      <td class="army-own">${p.army}</td>
+      <td class="vp-own">${p.vp ?? '-'}</td>
+      <td class="army-opp">${p.opponent}</td>
+      <td class="vp-opp">${p.vp_opponent ?? '-'}</td>
       <td><span class="badge ${cls}">${p.result}</span></td>
       <td><button class="del-btn" data-id="${p.id}" aria-label="Delete game">&times;</button></td>`;
     tbodyHist.appendChild(tr);
