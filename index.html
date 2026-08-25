@@ -25,7 +25,6 @@
     padding: 20px;
   }
   h1 {
-    font-family: Georgia, serif;
     letter-spacing: 2px;
     color: var(--gold);
     font-size: 20px;
@@ -37,82 +36,42 @@
   h1 span { color: var(--text-dim); font-size: 12px; letter-spacing: 1px; display: block; margin-top: 4px; text-transform: none; }
   .layout { display: grid; grid-template-columns: 320px 1fr; gap: 18px; }
   @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 16px;
-  }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 16px; }
   .panel h2 {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--gold);
-    margin: 0 0 12px 0;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 8px;
+    font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--gold);
+    margin: 0 0 12px 0; border-bottom: 1px solid var(--border); padding-bottom: 8px;
   }
   label {
-    display: block;
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-bottom: 4px;
-    margin-top: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; margin-top: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px;
   }
   select, input, button {
-    width: 100%;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 9px 10px;
-    border-radius: 3px;
-    font-family: Georgia, serif;
-    font-size: 14px;
+    width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    padding: 9px 10px; border-radius: 3px; font-family: Georgia, serif; font-size: 14px;
   }
   select:focus, input:focus { outline: 1px solid var(--gold-dim); border-color: var(--gold-dim); }
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .result-btn-group { display: flex; gap: 8px; margin-top: 4px; }
   .result-btn { width: auto; flex: 1; cursor: pointer; padding: 9px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
   .result-btn.win.active { border-color: #4f7a3f; color: #9fcf8a; box-shadow: inset 0 0 0 1px #4f7a3f; }
   .result-btn.loss.active { border-color: var(--red); color: #e08a8a; box-shadow: inset 0 0 0 1px var(--red); }
   .result-btn.draw.active { border-color: var(--gold-dim); color: #d9c58a; box-shadow: inset 0 0 0 1px var(--gold-dim); }
   button.submit {
-    margin-top: 18px;
-    background: var(--red);
-    border: 1px solid #a83c3c;
-    color: #f0e6d8;
-    font-weight: bold;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-size: 13px;
-    cursor: pointer;
-    padding: 11px;
+    margin-top: 18px; background: var(--red); border: 1px solid #a83c3c; color: #f0e6d8;
+    font-weight: bold; letter-spacing: 1px; text-transform: uppercase; font-size: 13px; cursor: pointer; padding: 11px;
   }
   button.submit:hover { background: #a83232; }
   button.submit:disabled { opacity: 0.4; cursor: not-allowed; }
   .error { color: #e08a8a; font-size: 12px; margin-top: 8px; display: none; }
-  .sync-note { color: var(--text-dim); font-size: 11px; margin-top: 14px; line-height: 1.5; border-top: 1px solid var(--border); padding-top: 10px; }
+  .conn-note { color: var(--text-dim); font-size: 11px; margin-top: 14px; line-height: 1.5; border-top: 1px solid var(--border); padding-top: 10px; }
+  .conn-note.bad { color: #e08a8a; }
   .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
-  .stat-card {
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 10px 12px;
-  }
+  .stat-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 3px; padding: 10px 12px; }
   .stat-card .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
   .stat-card .value { font-size: 20px; color: var(--gold); margin-top: 4px; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th {
-    text-align: left;
-    font-size: 11px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    letter-spacing: 0.5px;
-    border-bottom: 1px solid var(--border);
-    padding: 6px 8px;
-    white-space: nowrap;
+    text-align: left; font-size: 11px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border); padding: 6px 8px; white-space: nowrap;
   }
   td { padding: 7px 8px; border-bottom: 1px solid #232328; }
   .table-scroll { overflow-x: auto; }
@@ -124,10 +83,7 @@
   .badge.loss { background: rgba(140,42,42,0.25); color: #e08a8a; }
   .badge.draw { background: rgba(125,101,49,0.25); color: #d9c58a; }
   .empty { color: var(--text-dim); font-size: 13px; padding: 20px 0; text-align: center; }
-  .del-btn {
-    background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px;
-    width: auto; padding: 0 4px;
-  }
+  .del-btn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px; width: auto; padding: 0 4px; }
   .del-btn:hover { color: #e08a8a; }
   .list-panel { max-height: 320px; overflow-y: auto; margin-top: 4px; }
   .loading { color: var(--text-dim); font-size: 13px; text-align: center; padding: 20px 0; }
@@ -189,7 +145,7 @@
     <div class="error" id="form-error"></div>
     <button class="submit" id="btn-log">Log game</button>
 
-    <div class="sync-note">Games are saved to your Claude account, so this same Battle Log will show the same games whether you open it here or from the Claude app on your phone — no separate database needed.</div>
+    <div class="conn-note" id="conn-note">Connecting to database…</div>
   </div>
 
   <div class="panel">
@@ -223,7 +179,18 @@
 </div>
 
 <script>
-const STORAGE_KEY = 'battle_log_games';
+// ====== FILL THESE IN FROM SUPABASE PROJECT SETTINGS -> API ======
+const SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY';
+// ===================================================================
+
+const TABLE_URL = `${SUPABASE_URL}/rest/v1/games`;
+const HEADERS = {
+  'apikey': SUPABASE_ANON_KEY,
+  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+  'Content-Type': 'application/json',
+};
+
 const $ = id => document.getElementById(id);
 let partidas = [];
 let resultadoSeleccionado = null;
@@ -251,29 +218,38 @@ function mostrarError(msg) {
 function limpiarError() {
   $('form-error').style.display = 'none';
 }
-
-async function cargarPartidas() {
-  try {
-    const result = await window.storage.get(STORAGE_KEY, false);
-    partidas = result ? JSON.parse(result.value) : [];
-  } catch (e) {
-    partidas = [];
-  }
-  $('loading-note').style.display = 'none';
-  render();
+function setConnNote(msg, bad) {
+  const el = $('conn-note');
+  el.textContent = msg;
+  el.classList.toggle('bad', !!bad);
 }
 
-async function guardarPartidas() {
+function configurado() {
+  return !SUPABASE_URL.includes('YOUR-PROJECT-REF') && !SUPABASE_ANON_KEY.includes('YOUR-ANON-PUBLIC-KEY');
+}
+
+async function cargarPartidas() {
+  if (!configurado()) {
+    setConnNote('Not connected yet — open this file in a text editor and paste your Supabase URL and anon key at the top of the script.', true);
+    $('loading-note').textContent = 'Database not configured yet.';
+    return;
+  }
   try {
-    const result = await window.storage.set(STORAGE_KEY, JSON.stringify(partidas), false);
-    if (!result) mostrarError('Could not save. Please try again.');
+    const res = await fetch(`${TABLE_URL}?select=*&order=created_at.asc`, { headers: HEADERS });
+    if (!res.ok) throw new Error(await res.text());
+    partidas = await res.json();
+    setConnNote('Connected — this page reads and writes straight to your Supabase database, so it stays in sync across every device.');
+    $('loading-note').style.display = 'none';
+    render();
   } catch (e) {
-    mostrarError('Could not save. Please try again.');
+    setConnNote('Could not connect to the database. Check your Supabase URL, anon key, and that the games table exists.', true);
+    $('loading-note').textContent = 'Could not load games.';
   }
 }
 
 $('btn-log').addEventListener('click', async () => {
   limpiarError();
+  if (!configurado()) return mostrarError('Database is not configured yet — see the note below.');
 
   let ejercito = $('ejercito').value;
   if (ejercito === '__custom') ejercito = $('ejercito-custom').value.trim();
@@ -285,35 +261,44 @@ $('btn-log').addEventListener('click', async () => {
   if (!rival) return mostrarError('Enter your opponent\'s army.');
   if (!resultadoSeleccionado) return mostrarError('Pick a result: Win, Draw, or Loss.');
 
-  partidas.push({
-    id: Date.now(),
-    fecha: new Date().toISOString().slice(0, 10),
-    puntos,
-    ejercito,
-    rival,
-    resultado: resultadoSeleccionado,
-  });
+  const nuevaPartida = { points: puntos, army: ejercito, opponent: rival, result: resultadoSeleccionado };
 
-  await guardarPartidas();
+  try {
+    const res = await fetch(TABLE_URL, {
+      method: 'POST',
+      headers: { ...HEADERS, 'Prefer': 'return=representation' },
+      body: JSON.stringify(nuevaPartida),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const [inserted] = await res.json();
+    partidas.push(inserted);
 
-  $('puntos').value = '';
-  resultadoSeleccionado = null;
-  document.querySelectorAll('.result-btn').forEach(b => b.classList.remove('active'));
+    $('puntos').value = '';
+    resultadoSeleccionado = null;
+    document.querySelectorAll('.result-btn').forEach(b => b.classList.remove('active'));
 
-  render();
+    render();
+  } catch (e) {
+    mostrarError('Could not save the game. Check your connection and try again.');
+  }
 });
 
 async function eliminarPartida(id) {
-  partidas = partidas.filter(p => p.id !== id);
-  await guardarPartidas();
-  render();
+  try {
+    const res = await fetch(`${TABLE_URL}?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
+    if (!res.ok) throw new Error(await res.text());
+    partidas = partidas.filter(p => p.id !== id);
+    render();
+  } catch (e) {
+    mostrarError('Could not delete that game. Try again.');
+  }
 }
 
 function render() {
   const total = partidas.length;
-  const victorias = partidas.filter(p => p.resultado === 'Win').length;
-  const derrotas = partidas.filter(p => p.resultado === 'Loss').length;
-  const empates = partidas.filter(p => p.resultado === 'Draw').length;
+  const victorias = partidas.filter(p => p.result === 'Win').length;
+  const derrotas = partidas.filter(p => p.result === 'Loss').length;
+  const empates = partidas.filter(p => p.result === 'Draw').length;
   const winrate = total > 0 ? Math.round((victorias / total) * 1000) / 10 : 0;
 
   $('s-total').textContent = total;
@@ -322,9 +307,9 @@ function render() {
 
   const porEjercito = {};
   partidas.forEach(p => {
-    if (!porEjercito[p.ejercito]) porEjercito[p.ejercito] = { jugadas: 0, victorias: 0 };
-    porEjercito[p.ejercito].jugadas += 1;
-    if (p.resultado === 'Win') porEjercito[p.ejercito].victorias += 1;
+    if (!porEjercito[p.army]) porEjercito[p.army] = { jugadas: 0, victorias: 0 };
+    porEjercito[p.army].jugadas += 1;
+    if (p.result === 'Win') porEjercito[p.army].victorias += 1;
   });
 
   const tbodyResumen = $('tbody-resumen');
@@ -357,14 +342,15 @@ function render() {
   $('empty-historial').style.display = total === 0 ? 'block' : 'none';
 
   [...partidas].reverse().forEach(p => {
-    const cls = p.resultado === 'Win' ? 'win' : (p.resultado === 'Loss' ? 'loss' : 'draw');
+    const cls = p.result === 'Win' ? 'win' : (p.result === 'Loss' ? 'loss' : 'draw');
+    const fecha = (p.created_at || '').slice(0, 10);
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${p.fecha}</td>
-      <td>${p.puntos ?? '-'}</td>
-      <td>${p.ejercito}</td>
-      <td>${p.rival}</td>
-      <td><span class="badge ${cls}">${p.resultado}</span></td>
+      <td>${fecha}</td>
+      <td>${p.points ?? '-'}</td>
+      <td>${p.army}</td>
+      <td>${p.opponent}</td>
+      <td><span class="badge ${cls}">${p.result}</span></td>
       <td><button class="del-btn" data-id="${p.id}" aria-label="Delete game">&times;</button></td>`;
     tbodyHist.appendChild(tr);
   });
